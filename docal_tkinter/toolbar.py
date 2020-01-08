@@ -4,6 +4,7 @@ from tkinter.ttk import Frame, OptionMenu, Button
 class Toolbar(Frame):
     def __init__(self, master):
         super().__init__(master)
+        self.master = master
 
         self.btn_add = Button(self, text='Add')
         self.btn_add_py = Button(self, text='Add Python')
@@ -18,3 +19,6 @@ class Toolbar(Frame):
         self.btn_options.pack(side='left')
         self.btn_preview.pack(side='left')
         self.btn_delete.pack(side='left')
+
+        self.btn_add.bind('<1>', self.master.worksheet.add)
+        self.btn_delete.bind('<1>', self.master.worksheet.delete)

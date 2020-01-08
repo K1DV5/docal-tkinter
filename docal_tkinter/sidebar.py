@@ -11,12 +11,10 @@ class Sidebar(Frame):
         # infile area
         self.infile_area = InfileArea(self)
         self.infile_area.grid(row=0, column=0, sticky='ew')
-        self.grid_rowconfigure(0, pad=15)
 
         # outfile area
         self.outfile_area = OutfileArea(self)
-        self.outfile_area.grid(row=1, column=0, sticky='ew')
-        self.grid_rowconfigure(1, pad=15)
+        self.outfile_area.grid(row=1, column=0, sticky='ew', pady=20)
 
         log_frame = Frame(self, borderwidth='.25cm')
         log_frame.grid(row=2, column=0, sticky='ew')
@@ -32,8 +30,7 @@ class Sidebar(Frame):
         self.log_level.grid(row=0, column=1, sticky='ew')
 
         self.send_btn = Button(self, text='Send')
-        self.send_btn.grid(row=3, column=0, sticky='ew')
-        self.grid_rowconfigure(3, pad=20)
+        self.send_btn.grid(row=3, column=0, sticky='ew', padx='.25cm')
 
 def set_entry_text(entry, text):
     entry.delete(0, 'end')
