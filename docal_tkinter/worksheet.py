@@ -104,8 +104,8 @@ class Step(Frame):
         self.output.delete('all')
         self.current_str = self.input.get()
 
-        is_last = self.is_last()
-        if not is_last:
+        next_step = self.sibling(1)
+        if next_step:
             self.master.working_dict = {}
 
         try:
@@ -129,7 +129,10 @@ class Step(Frame):
         e.render(self.output)
         self.input.pack_forget()
         self.output.pack()
-        if is_last:
+        if next_step:
+            if isinstance(next_step.pack_slaves()[0], Entry):
+                next_step.input.focus()
+        else:
             self.master.add(event)
 
     def edit(self, event):
