@@ -68,10 +68,10 @@ class Worksheet(Frame):
     def add(self, event):
         step = Step(self.frame, self)
         step.grid(sticky='ew')
+        return step
 
     def delete(self, event):
         self.frame.winfo_children()[0].destroy()
-
 
 class Step(Frame):
     def __init__(self, master, grand_master, kind='python'):
@@ -84,8 +84,11 @@ class Step(Frame):
         self.output = Canvas(self)
         self.input.pack(fill='x')
         # self.output.pack()
-        self.input.bind('<Return>', self.calculate)
+        self.input.bind('<Return>', self.render)
         self.input.bind('<BackSpace>', self.merge)
+        self.input.bind('<Delete>', self.merge)
+        self.input.bind('<Control-Return>', self.split)
+        self.input.bind('<Shift-Return>', self.split)
         self.input.bind('<Escape>', self.restore)
         self.output.bind('<1>', self.edit)
         self.bind('<1>', self.edit)
@@ -95,30 +98,29 @@ class Step(Frame):
         self.current_str = ''
         self.mode = 'add'  # or edit
 
-    def calculate(self, event):
+    def render(self, event=None):
         self.output.delete('all')
-        self.current_str = event.widget.get()
+        self.current_str = self.input.get()
 
+        if not self.is_last():
+            self.master.working_dict = {}
         returned = self.master.process(self.current_str)
         if returned[0][1][0] == 'text':
             print(returned[0][1][1])
-        else:
-            e = returned[0][1][1]
-            cwidth = e.size[0]*1.2
-            cheight = e.size[1]*1.2
-            e.coords = (e.size[0]*0.1, e.size[1]*0.1)
+            return False
+        e = returned[0][1][1]
+        cwidth = e.size[0]*1.2
+        cheight = e.size[1]*1.2
+        e.coords = (e.size[0]*0.1, e.size[1]*0.1)
 
-            self.output.config(width=cwidth, height=cheight)
-            e.render(self.output)
-
-            self.input.pack_forget()
-            self.output.pack()
-
-            if self.mode == 'add':
-                self.master.add(event)
+        self.output.config(width=cwidth, height=cheight)
+        e.render(self.output)
+        self.input.pack_forget()
+        self.output.pack()
+        if self.is_last():
+            self.master.add(event)
 
     def edit(self, event):
-        self.mode = 'edit'
         self.output.pack_forget()
         self.input.pack(fill='x')
         self.input.focus()
@@ -131,10 +133,56 @@ class Step(Frame):
         self.output.pack()
 
     def merge(self, event):
-        if event.widget.index('insert') == 0:
-            current_content = event.widget.get()
-            if not current_content.strip():
-                breakpoint()
-                self.destroy()
-            else:
-                pass
+        cursor_idx = event.widget.index('insert')
+        if event.keysym == 'BackSpace':
+            if cursor_idx > 0:
+                return
+            insert_pos = 'end'
+            sibling = self.sibling(-1)
+        elif event.keysym == 'Delete':
+            if cursor_idx < event.widget.index('end'):
+                return
+            insert_pos = 0
+            sibling = self.sibling(1)
+        else:
+            return
+        if not sibling:
+            return
+        sibling.edit(None)
+        if event.keysym == 'BackSpace':
+            cursor_idx = sibling.input.index(insert_pos)
+        current_content = event.widget.get()
+        sibling.input.insert(insert_pos, current_content)
+        sibling.input.icursor(cursor_idx)
+        self.destroy()
+
+    def split(self, event):
+        current_content = event.widget.get()
+        i_cursor = event.widget.index('insert')
+        event.widget.delete(i_cursor, 'end')
+        self.render()
+
+        this_row = self.grid_info()['row']
+        if not self.is_last():
+            for step in self.master.frame.grid_slaves(column=0):
+                row = step.grid_info()['row']
+                if row > this_row:
+                    step.grid_forget()
+                    step.grid(row=row+1, sticky='ew')
+
+        new = self.master.add(None)
+        new.grid_forget()
+        new.grid(row=this_row + 1, sticky='ew')
+        new.input.insert(0, current_content[i_cursor:])
+
+    def sibling(self, offset=0):
+        n_row = self.grid_info()['row'] + offset
+        if n_row < 0:
+            return False
+        siblings = self.master.frame.grid_slaves(row=n_row)
+        if siblings:
+            return siblings[0]
+        return False
+
+    def is_last(self):
+        return False if self.sibling(1) else True
