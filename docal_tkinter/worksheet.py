@@ -102,8 +102,10 @@ class Step(Frame):
         self.output.delete('all')
         self.current_str = self.input.get()
 
-        if not self.is_last():
+        is_last = self.is_last()
+        if not is_last:
             self.master.working_dict = {}
+
         returned = self.master.process(self.current_str)
         if returned[0][1][0] == 'text':
             print(returned[0][1][1])
@@ -117,7 +119,7 @@ class Step(Frame):
         e.render(self.output)
         self.input.pack_forget()
         self.output.pack()
-        if self.is_last():
+        if is_last:
             self.master.add(event)
 
     def edit(self, event):
@@ -175,13 +177,23 @@ class Step(Frame):
         new.grid(row=this_row + 1, sticky='ew')
         new.input.insert(0, current_content[i_cursor:])
 
-    def sibling(self, offset=0):
-        n_row = self.grid_info()['row'] + offset
-        if n_row < 0:
+    def sibling(self, direction=0):
+        n_row = self.grid_info()['row']
+        if n_row + direction < 0 or direction == 0:
             return False
-        siblings = self.master.frame.grid_slaves(row=n_row)
-        if siblings:
-            return siblings[0]
+        if direction < 0:
+            next_exists = lambda row: row > 0
+            increment = -1
+        else:
+            rowsize = self.master.frame.grid_size()[1]
+            next_exists = lambda row: row < rowsize
+            increment = 1
+        row = n_row
+        while next_exists(row):
+            row += increment
+            siblings = self.master.frame.grid_slaves(row=row)
+            if siblings:
+                return siblings[0]
         return False
 
     def is_last(self):
