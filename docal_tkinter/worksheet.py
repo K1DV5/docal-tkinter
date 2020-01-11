@@ -82,8 +82,10 @@ class Step(Frame):
 
         self.input = Entry(self)
         self.output = Canvas(self)
+        self.exception = Label(self, foreground='red', font=(None, 8))
+
         self.input.pack(fill='x')
-        # self.output.pack()
+
         self.input.bind('<Return>', self.render)
         self.input.bind('<BackSpace>', self.merge)
         self.input.bind('<Delete>', self.merge)
@@ -106,7 +108,15 @@ class Step(Frame):
         if not is_last:
             self.master.working_dict = {}
 
-        returned = self.master.process(self.current_str)
+        try:
+            returned = self.master.process(self.current_str)
+        except Exception as exc:
+            message = exc.args[0]
+            self.exception.config(text=message)
+            self.exception.pack(fill='x')
+            return
+        else:
+            self.exception.pack_forget()
         if returned[0][1][0] == 'text':
             print(returned[0][1][1])
             return False
