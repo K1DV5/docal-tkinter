@@ -18,8 +18,9 @@ def augment_input(line, kind='ascii'):
         return line
     if line.startswith(':'):  # code
         return line[1:]
-    elif ascii_text.search(line):  # normal text
-        return '# ' + line
+    elif line.startswith(' ') or line.endswith(' ') or ascii_text.search(line):
+        # normal text
+        return '# ' + line.strip()
     return line.replace('^', '**')
 
 def augment_output(output, input_str):
