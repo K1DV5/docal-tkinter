@@ -93,7 +93,6 @@ class Worksheet(Frame):
     def add(self, event):
         step = Step(self.frame, self)
         step.grid(sticky='ew')
-        step.scroll_into_view()
         return step
 
     def update_all(self, event_source):
@@ -134,6 +133,7 @@ class Step(Frame):
         self.input.bind('<Escape>', self.restore)
         self.input.bind('<Up>', self.edit_neighbour)
         self.input.bind('<Down>', self.edit_neighbour)
+        self.input.bind('<FocusIn>', self.scroll_into_view)
         self.output.bind('<1>', self.edit)
         self.bind('<1>', self.edit)
 
@@ -312,18 +312,19 @@ class Step(Frame):
     def is_rendered(self):
         return not isinstance(self.pack_slaves()[0], Entry)
 
-    def is_offscreen(self):
+    def scroll_into_view(self, event):
         self.master.update()  # will always get winfo_y() = 0 without this
         view_range = self.master.canvas.yview()
-        height = int(self.master.canvas['scrollregion'].split()[3])
+        canvas_height = int(self.master.canvas['scrollregion'].split()[3])
         top_offset = self.winfo_y()
-        yield top_offset > height * view_range[1]
-        # if the offset is wanted, here
-        offset = top_offset + self.winfo_height() - height * view_range[1]
-        yield offset / height + view_range[0]
-
-    def scroll_into_view(self):
-        offscreen = self.is_offscreen()
-        if not next(offscreen):
+        height = self.winfo_height()
+        to_bottom = top_offset + height > canvas_height * view_range[1]
+        to_top = top_offset < canvas_height * view_range[0]
+        if to_top:
+            offset = top_offset - view_range[0] * canvas_height
+        elif to_bottom:
+            offset = top_offset + height - canvas_height * view_range[1]
+        else:
             return
-        self.master.canvas.yview_moveto(next(offscreen))
+        new = offset / canvas_height + view_range[0]
+        self.master.canvas.yview_moveto(new)
