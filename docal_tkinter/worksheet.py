@@ -49,7 +49,7 @@ class Worksheet(Frame):
 
         # math_font = font.Font(self, family='consolas', size=16)
 
-        self.frame = self.scrolled_frame()
+        self.frame, self.canvas = self.scrolled_frame()
         self.frame.grid_columnconfigure(0, weight=1)
 
         math_font = font.Font(family='cambria math', size=12)
@@ -88,16 +88,12 @@ class Worksheet(Frame):
         canvas.bind_all('<MouseWheel>',
                         lambda e: canvas.yview_scroll(-1 if e.delta > 0 else 1,
                                                       'units'))
-        return frame
+        return frame, canvas
 
     def add(self, event):
         step = Step(self.frame, self)
         step.grid(sticky='ew')
-        self.frame.after_idle(lambda: print(step.winfo_y()))
-        # print(self.winfo_height() - step.winfo_y())
-        # print(self.winfo_height(), step.winfo_())
-        # row = step.grid_info()['row']
-        # print(step.grid_bbox(0, row, 0, row))
+        step.scroll_into_view()
         return step
 
     def update_all(self, event_source):
@@ -316,3 +312,18 @@ class Step(Frame):
     def is_rendered(self):
         return not isinstance(self.pack_slaves()[0], Entry)
 
+    def is_offscreen(self):
+        self.master.update()  # will always get winfo_y() = 0 without this
+        view_range = self.master.canvas.yview()
+        height = int(self.master.canvas['scrollregion'].split()[3])
+        top_offset = self.winfo_y()
+        yield top_offset > height * view_range[1]
+        # if the offset is wanted, here
+        offset = top_offset + self.winfo_height() - height * view_range[1]
+        yield offset / height + view_range[0]
+
+    def scroll_into_view(self):
+        offscreen = self.is_offscreen()
+        if not next(offscreen):
+            return
+        self.master.canvas.yview_moveto(next(offscreen))
