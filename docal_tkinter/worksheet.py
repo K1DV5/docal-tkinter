@@ -109,6 +109,7 @@ class Autocomplete(Listbox):
         self.entry = None
         self.trigger = ''
         self.index_replace = (0, 0)
+        self.pattern = re.compile('[\w\d]+$')
 
         self.listvar = StringVar(self)
         self.config(listvar=self.listvar)
@@ -166,7 +167,11 @@ class Autocomplete(Listbox):
         if self.not_needed(current):
             self.place_forget()
             return
-        current_word = current.split(' ')[-1]
+        match = self.pattern.search(current)
+        if not match:
+            self.place_forget()
+            return
+        current_word = match.group(0)
         if not current_word.isidentifier():
             self.place_forget()
             return
