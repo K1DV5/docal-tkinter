@@ -122,6 +122,11 @@ class Autocomplete(Listbox):
         self.bind('<<ListboxSelect>>', self.on_select)
 
     def select_next(self, direction):
+        if not direction:
+            if self.selected is not None:
+                self.select_clear(self.selected)
+                self.selected = None
+            return
         if self.selected is not None:
             self.select_clear(self.selected)
         if direction == 1:  # without shift
@@ -178,9 +183,9 @@ class Autocomplete(Listbox):
         self.listvar.set(' '.join(matches[:self.limit]))
         coord_x = entry.winfo_x() + round(self.font.measure(current) * 0.811)
         self.place(x=coord_x, y=coord_y)
+        self.select_next(0)
         self.config(height=self.size())
         self.len = self.size()
-        print(self.winfo_ismapped(), coord_y)
 
 class Step(Frame):
     def __init__(self, master, grand_master):
