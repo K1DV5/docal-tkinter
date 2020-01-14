@@ -2,7 +2,7 @@
 # -{cd .. | ipython --pdb -m docal_tkinter}
 import re
 from tkinter.ttk import Frame, Label, Entry, Scrollbar
-from tkinter import font, Canvas, font
+from tkinter import font, Canvas, Listbox, StringVar
 
 import sys
 sys.path.insert(1, 'd:/Documents/Code/Projects/tkinter-math')
@@ -35,6 +35,7 @@ class handler:
 class Worksheet(Frame):
     def __init__(self, master):
         super().__init__(master)
+
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -52,6 +53,8 @@ class Worksheet(Frame):
 
         self.doc_obj = document(None, 'untitled.tex', handler, working_dict={})
         self.process = self.doc_obj.process
+
+        self.autocomplete = Autocomplete(self)
 
         self.add(None)
 
@@ -98,14 +101,68 @@ class Worksheet(Frame):
     def delete(self, event):
         self.frame.winfo_children()[0].destroy()
 
+class Autocomplete(Listbox):
+    def __init__(self, master):
+        super().__init__(master)
+        self.master = master
+
+        self.coord_y = 0  # this is not available with winfo_y, set using scroll_into_view
+
+        self.listvar = StringVar(self)
+        self.config(listvar=self.listvar)
+        self.font = font.Font(family='TkTextFont')  # this has to match the one for the inputs
+
+        self.entry = None
+        self.matches = []
+
+        # items list limit
+        self.limit = 5
+
+    def show(self, x, y):
+        self.place(x=x, y=y)
+        self.entry.bind('<Tab>', self.select_next)
+        self.entry.bind('<Shift-Tab>', self.select_next)
+        self.config(height=len(self.matches))
+
+    def hide(self):
+        self.place_forget()
+        self.entry.unbind('<Tab>')
+        self.entry.unbind('<Shift-Tab>')
+
+    def select_next(self, event):
+        print(self.selection_get())
+
+    def not_needed(self, text):
+        return text.endswith(' ')
+
+    def suggest(self, event):
+        i_cursor = self.entry.index('insert')
+        current = self.entry.get()[:i_cursor]
+        if self.not_needed(current):
+            self.hide()
+            return
+        current_word = current.split(' ')[-1]
+        if not current_word.isidentifier():
+            self.hide()
+            return
+        self.matches = [key for key in self.master.doc_obj.working_dict if key.startswith(current_word) and not key.endswith(UNIT_PF) and len(key) > 1]
+        if not self.matches:
+            self.hide()
+            return
+        self.listvar.set(' '.join(self.matches[:self.limit]))
+        coord_y = self.coord_y + self.entry.winfo_height()
+        coord_x = self.entry.winfo_x() + round(self.font.measure(current) * 0.811)
+        self.show(coord_x, coord_y)
+
 class Step(Frame):
     def __init__(self, master, grand_master):
         super().__init__(master)
         self.master = grand_master
 
-        self.input = Entry(self)
+        self.input = Entry(self, font=('TkTextFont',))
         self.input_props = {
-            'kind': 'ascii'  # or python or excel
+            'kind': 'ascii',  # or python or excel
+            'y': 0  # not always available, to be set at scroll_into_view, for autocomplete
         }
         self.output = Canvas(self)
         self.output_props = {
@@ -125,6 +182,7 @@ class Step(Frame):
         self.input.bind('<Up>', self.edit_neighbour)
         self.input.bind('<Down>', self.edit_neighbour)
         self.input.bind('<FocusIn>', self.scroll_into_view)
+        self.input.bind('<KeyRelease>', self.autocomplete)
         self.output.bind('<1>', self.edit)
         self.bind('<1>', self.edit)
 
@@ -132,6 +190,11 @@ class Step(Frame):
 
         self.current_str = ''
         self.mode = 'add'  # or edit
+
+    def autocomplete(self, event):
+        self.master.autocomplete.coord_y = self.input_props['y']
+        self.master.autocomplete.entry = self.input
+        self.master.autocomplete.suggest(event)
 
     def set_output(self, kind):
         '''cheap widget type change'''
@@ -308,6 +371,8 @@ class Step(Frame):
         view_range = self.master.canvas.yview()
         canvas_height = int(self.master.canvas['scrollregion'].split()[3])
         top_offset = self.winfo_y()
+        # store info for autocomplete
+        self.input_props['y'] = top_offset
         height = self.winfo_height()
         to_bottom = top_offset + height > canvas_height * view_range[1]
         to_top = top_offset < canvas_height * view_range[0]
@@ -319,3 +384,4 @@ class Step(Frame):
             return
         new = offset / canvas_height + view_range[0]
         self.master.canvas.yview_moveto(new)
+
