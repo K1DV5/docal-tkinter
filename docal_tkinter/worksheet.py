@@ -106,57 +106,85 @@ class Autocomplete(Listbox):
         super().__init__(master)
         self.master = master
 
-        self.coord_y = 0  # this is not available with winfo_y, set using scroll_into_view
+        self.entry = None
+        self.trigger = ''
+        self.index_replace = (0, 0)
 
         self.listvar = StringVar(self)
         self.config(listvar=self.listvar)
         self.font = font.Font(family='TkTextFont')  # this has to match the one for the inputs
 
-        self.entry = None
-        self.matches = []
-
         # items list limit
         self.limit = 5
+        self.len = 0
+        self.selected = None
 
-    def show(self, x, y):
-        self.place(x=x, y=y)
-        self.entry.bind('<Tab>', self.select_next)
-        self.entry.bind('<Shift-Tab>', self.select_next)
-        self.config(height=len(self.matches))
+        self.bind('<<ListboxSelect>>', self.on_select)
 
-    def hide(self):
-        self.place_forget()
-        self.entry.unbind('<Tab>')
-        self.entry.unbind('<Shift-Tab>')
+    def select_next(self, direction):
+        if self.selected is not None:
+            self.select_clear(self.selected)
+        if direction == 1:  # without shift
+            if self.selected is None:
+                self.selected = 0
+            elif self.selected + 1 < self.len:
+                self.selected += 1
+            else:
+                self.selected = None
+        else:  # with shift
+            if self.selected is None:
+                self.selected = self.len - 1
+            elif self.selected > 0:
+                self.selected -= 1
+            else:
+                self.selected = None
+        if self.selected is not None:
+            self.selection_set(self.selected)
+        self.on_select(None)
+        return 'break'
 
-    def select_next(self, event):
-        print(self.selection_get())
+    def on_select(self, event):
+        if self.selected is None:
+            selected = self.trigger
+        else:
+            selected = self.selection_get()
+        self.entry.delete(self.index_replace[0], self.index_replace[1])
+        self.entry.insert(self.index_replace[0], selected)
+        self.index_replace = self.index_replace[0], self.index_replace[0] + len(selected)
 
     def not_needed(self, text):
         return text.endswith(' ')
 
-    def suggest(self, event):
-        i_cursor = self.entry.index('insert')
-        current = self.entry.get()[:i_cursor]
+    def suggest(self, entry, coord_y):
+        entry_cursor = entry.index('insert')
+        current = entry.get()[:entry_cursor]
         if self.not_needed(current):
-            self.hide()
+            self.place_forget()
             return
         current_word = current.split(' ')[-1]
         if not current_word.isidentifier():
-            self.hide()
+            self.place_forget()
             return
-        self.matches = [key for key in self.master.doc_obj.working_dict if key.startswith(current_word) and not key.endswith(UNIT_PF) and len(key) > 1]
-        if not self.matches:
-            self.hide()
+        matches = [key for key in self.master.doc_obj.working_dict
+                   if key.startswith(current_word)
+                   and not key.endswith(UNIT_PF)
+                   and len(key) > 1]
+        if not matches:
+            self.place_forget()
             return
-        self.listvar.set(' '.join(self.matches[:self.limit]))
-        coord_y = self.coord_y + self.entry.winfo_height()
-        coord_x = self.entry.winfo_x() + round(self.font.measure(current) * 0.811)
-        self.show(coord_x, coord_y)
+        self.entry = entry
+        self.trigger = current_word
+        self.index_replace = (entry_cursor - len(current_word), entry_cursor)
+        self.listvar.set(' '.join(matches[:self.limit]))
+        coord_y = coord_y + entry.winfo_height()
+        coord_x = entry.winfo_x() + round(self.font.measure(current) * 0.811)
+        self.place(x=coord_x, y=coord_y)
+        self.config(height=self.size())
+        self.len = self.size()
 
 class Step(Frame):
     def __init__(self, master, grand_master):
-        super().__init__(master)
+        super().__init__(master, takefocus=0)
         self.master = grand_master
 
         self.input = Entry(self, font=('TkTextFont',))
@@ -182,6 +210,7 @@ class Step(Frame):
         self.input.bind('<Up>', self.edit_neighbour)
         self.input.bind('<Down>', self.edit_neighbour)
         self.input.bind('<FocusIn>', self.scroll_into_view)
+        self.input.bind('<Tab>', self.autocomplete)
         self.input.bind('<KeyRelease>', self.autocomplete)
         self.output.bind('<1>', self.edit)
         self.bind('<1>', self.edit)
@@ -192,9 +221,17 @@ class Step(Frame):
         self.mode = 'add'  # or edit
 
     def autocomplete(self, event):
-        self.master.autocomplete.coord_y = self.input_props['y']
-        self.master.autocomplete.entry = self.input
-        self.master.autocomplete.suggest(event)
+        menu = self.master.autocomplete
+        if event.keysym == 'Tab':
+            # prevent from firing many times
+            if str(event.type) != 'KeyPress' or not menu.winfo_ismapped():
+                return
+            direction = 1 if event.state == 8 else -1
+            menu.select_next(direction)
+            return 'break'
+        elif event.keysym in ('Shift_L', 'Shift_R'):
+            return
+        menu.suggest(self.input, self.input_props['y'])
 
     def set_output(self, kind):
         '''cheap widget type change'''
