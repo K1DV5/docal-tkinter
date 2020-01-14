@@ -10,18 +10,8 @@ sys.path.insert(1, 'd:/Documents/Code/Projects/docal')
 # to render the math
 from tkinter_math import syntax, select_font
 from docal import document
-
-ascii_text = re.compile(r'\w+ +\w+')
-
-def augment_input(line, kind='ascii'):
-    if kind != 'ascii':
-        return line
-    if line.startswith(':'):  # code
-        return line[1:]
-    elif line.startswith(' ') or line.endswith(' ') or ascii_text.search(line):
-        # normal text
-        return '# ' + line.strip()
-    return line.replace('^', '**')
+from docal.parsers.dcl import to_py
+from docal.parsing import UNIT_PF
 
 def augment_output(output, input_str):
     if output:
@@ -189,7 +179,7 @@ class Step(Frame):
 
     def render(self):
         self.current_str = self.input.get().replace('\n', ' ')
-        input_str = augment_input(self.current_str)
+        input_str = to_py(self.current_str)
 
         try:
             returned = augment_output(self.master.process(input_str), input_str)
