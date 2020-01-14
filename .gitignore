@@ -1,5 +1,6 @@
 **/__pycache__
-build
-dist
-*.spec
+build/*
+!build/make.py
+!build/docal.ico
+!build/installer-script.nsi
 rnd
