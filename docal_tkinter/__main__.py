@@ -1,5 +1,5 @@
 # -{cd .. | python -m docal_tkinter}
-from .app import App
+from docal_tkinter.app import App
 
 # app
 app = App()
