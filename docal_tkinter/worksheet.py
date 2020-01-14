@@ -176,11 +176,11 @@ class Autocomplete(Listbox):
         self.trigger = current_word
         self.index_replace = (entry_cursor - len(current_word), entry_cursor)
         self.listvar.set(' '.join(matches[:self.limit]))
-        coord_y = coord_y + entry.winfo_height()
         coord_x = entry.winfo_x() + round(self.font.measure(current) * 0.811)
         self.place(x=coord_x, y=coord_y)
         self.config(height=self.size())
         self.len = self.size()
+        print(self.winfo_ismapped(), coord_y)
 
 class Step(Frame):
     def __init__(self, master, grand_master):
@@ -231,6 +231,7 @@ class Step(Frame):
             return 'break'
         elif event.keysym in ('Shift_L', 'Shift_R'):
             return
+        self.scroll_into_view(None)
         menu.suggest(self.input, self.input_props['y'])
 
     def set_output(self, kind):
@@ -408,9 +409,9 @@ class Step(Frame):
         view_range = self.master.canvas.yview()
         canvas_height = int(self.master.canvas['scrollregion'].split()[3])
         top_offset = self.winfo_y()
-        # store info for autocomplete
-        self.input_props['y'] = top_offset
         height = self.winfo_height()
+        # store info for autocomplete
+        self.input_props['y'] = top_offset + height - canvas_height * view_range[0]
         to_bottom = top_offset + height > canvas_height * view_range[1]
         to_top = top_offset < canvas_height * view_range[0]
         if to_top:
