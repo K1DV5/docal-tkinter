@@ -4,7 +4,6 @@ from tkinter import Menu, filedialog
 class Menubar(Menu):
     def __init__(self, master):
         super().__init__(master, tearoff=0)
-        self.master = master
 
         self.add_cascade(label='File', menu=FileMenu(self))
         self.add_cascade(label='Operations', menu=OpsMenu(self))
@@ -17,7 +16,6 @@ class FileMenu(Menu):
     def __init__(self, master):
         # tearoff to get rid of the -- at the top
         super().__init__(master, tearoff=0)
-        self.master = master
 
         self.add_command(label='New', command=self.new)
         self.add_command(label='Open...', command=self.open)

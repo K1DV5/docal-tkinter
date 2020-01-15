@@ -341,7 +341,6 @@ class Step(Frame):
 class Autocomplete(Listbox):
     def __init__(self, master):
         super().__init__(master)
-        self.master = master
 
         self.entry = None
         self.trigger = ''
@@ -416,7 +415,7 @@ class Autocomplete(Listbox):
         matches = [key for key in self.master.doc_obj.working_dict
                    if key.startswith(trigger)
                    and not key.endswith(UNIT_PF)
-                   and 1 < len_trigger < len(key)]
+                   and len_trigger < len(key)]
         if not matches:
             self.place_forget()
             return

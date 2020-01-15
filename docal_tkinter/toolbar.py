@@ -30,8 +30,6 @@ class Toolbar(Frame):
         self.accents = Accents(self)
         self.accents.grid(sticky='ew', padx=10, pady=10)
 
-        # print(event.widget.winfo_x(), step.input_props['y'], self.winfo_width())
-
 class Options(LabelFrame):
     def __init__(self, master):
         super().__init__(master, text='Options')
