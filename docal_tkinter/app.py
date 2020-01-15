@@ -12,8 +12,7 @@ class App(Tk):
 
         self.config(menu=Menubar(self))
 
-        self.minsize(400, 300)
-        self.geometry('800x500')
+        self.minsize(600, 470)
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
