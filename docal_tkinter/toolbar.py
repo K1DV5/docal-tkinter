@@ -1,5 +1,6 @@
 # -{cd .. | python -m docal_tkinter}
-from tkinter.ttk import Frame, LabelFrame, Radiobutton, Entry, Label, Button
+from tkinter.ttk import Frame, LabelFrame, Checkbutton, Entry, Label, Button
+from tkinter import IntVar
 from docal.handlers.word import PRIMES, GREEK_LETTERS
 
 MATH_ACCENTS = {
@@ -44,50 +45,88 @@ class Options(LabelFrame):
         note_label.grid(sticky='ew')
         self.note.grid(row=1, column=1, sticky='ew')
 
-        self.steps = LabelFrame(self, text='Steps')
-        self.step_1 = Radiobutton(self.steps, text='Equation')
-        self.step_2 = Radiobutton(self.steps, text='Equation with values')
-        self.step_3 = Radiobutton(self.steps, text='Result')
-        self.step_1.grid(sticky='ew', padx=10)
-        self.step_2.grid(sticky='ew', padx=10)
-        self.step_3.grid(sticky='ew', padx=10)
-        self.steps.grid(sticky='ew', columnspan=2, pady=10)
+        steps = LabelFrame(self, text='Steps')
+        self.step_vars = [IntVar(self, value=0), IntVar(self, value=0), IntVar(self, value=0)]
+        step_1 = Checkbutton(steps, text='Equation', variable=self.step_vars[0])
+        step_2 = Checkbutton(steps, text='Equation with values', variable=self.step_vars[1])
+        step_3 = Checkbutton(steps, text='Result', variable=self.step_vars[2])
+        step_1.grid(sticky='ew', padx=10)
+        step_2.grid(sticky='ew', padx=10)
+        step_3.grid(sticky='ew', padx=10)
+        steps.grid(sticky='ew', columnspan=2, pady=10)
 
-        self.inline = Radiobutton(self, text='Inline')
-        self.inline.grid(sticky='ew', columnspan=2)
+        self.v_inline = IntVar(self, value=0)
+        inline = Checkbutton(self, text='Inline', variable=self.v_inline)
+        inline.grid(sticky='ew', columnspan=2)
 
-        self.horizontal = Radiobutton(self, text='Horizontal')
-        self.horizontal.grid(sticky='ew', columnspan=2)
+        self.v_horiz = IntVar(self, value=0)
+        horizontal = Checkbutton(self, text='Horizontal', variable=self.v_horiz)
+        horizontal.grid(sticky='ew', columnspan=2)
 
-        self.hidden = Radiobutton(self, text='Hidden')
-        self.hidden.grid(sticky='ew', columnspan=2)
+        self.v_hidden = IntVar(self, value=0)
+        hidden = Checkbutton(self, text='Hidden', variable=self.v_hidden)
+        hidden.grid(sticky='ew', columnspan=2)
 
-        self.clear_options = Button(self, text='Clear', command=self.clear_options)
-        self.clear_options.grid()
+        clear_btn = Button(self, text='Clear', command=self.clear_options)
+        clear_btn.grid()
 
-        self.insert_btn = Button(self, text='Insert', command=self.insert_options)
-        self.insert_btn.grid(row=6, column=1, sticky='ew')
+        insert_btn = Button(self, text='Insert', command=self.insert_options)
+        insert_btn.grid(row=6, column=1, sticky='ew')
 
     def insert_options(self):
-        print('options')
+        options = []
+        unit = self.unit.get()
+        if unit.strip():
+            options.append(unit)
+        note = self.note.get()
+        if ',' in note:
+            options.append('#(' + note + ')')
+        elif note.strip():
+            options.append('#' + note)
+        steps = ''.join([str(i + 1) for i, var in enumerate(self.step_vars) if var.get()])
+        if steps:
+            options.append(steps)
+        if self.v_inline.get():
+            options.append('$')
+        if self.v_horiz.get():
+            options.append('-')
+        if self.v_hidden.get():
+            options.append(';')
+        if not options:
+            return
+        self.clear_options()
+        entry = self.master.master.worksheet.current_input
+        if not entry: return
+        current = entry.get()
+        if current.strip():
+            entry.insert('end', ' # ' + ', '.join(options))
+        else:
+            entry.insert('end', '#@ ' + ', '.join(options))
+        entry.focus()
 
     def clear_options(self):
-        print('clear_options')
+        entry = self.master.master.worksheet.current_input
+        if not entry: return
+        current = entry.get()
+        i_hash = current.find('#')
+        i_del = len(current[:i_hash].rstrip())
+        if i_hash == -1: return
+        entry.delete(i_del, 'end')
 
 class Greek(LabelFrame):
     def __init__(self, master):
         super().__init__(master, text='Greek letters')
-        self.data = {}
-        self.create_table(self, GREEK_LETTERS, self.insert_letter)
+        self.data = self.create_table(self, GREEK_LETTERS, self.insert_letter)
 
     @staticmethod
     def create_table(self, data, command):
         cols = 10
         row = col = 0
+        collect = {}
         for key, val in data.items():
-            self.data[val] = key
+            collect[val] = key
             label = Label(self, text=val)
-            label.grid(row=row, column=col)
+            label.grid(row=row, column=col, sticky='ew')
             label.bind('<1>', command)
             if col == cols:
                 col = 0
@@ -96,15 +135,30 @@ class Greek(LabelFrame):
                 col += 1
         for col in range(cols):
             self.grid_columnconfigure(col, weight=1)
+        return collect
 
     def insert_letter(self, event):
-        print(event.widget['text'])
+        entry = self.master.master.worksheet.focus_get()
+        if not entry: return
+        until_cursor = entry.get()[: entry.icursor('insert')]
+        if until_cursor:
+            last_char = until_cursor[-1]
+            if last_char.isalpha() or last_char.isdigit():
+                return
+        letter = self.data[event.widget['text']]
+        entry.insert(entry.index('insert'), letter)
 
 class Accents(LabelFrame):
     def __init__(self, master):
         super().__init__(master, text='Accents')
-        self.data = {}
-        Greek.create_table(self, {**MATH_ACCENTS, **PRIMES}, self.insert_accent)
+        self.data = Greek.create_table(self, {**MATH_ACCENTS, **PRIMES}, self.insert_accent)
 
     def insert_accent(self, event):
-        print(event.widget['text'])
+        entry = self.master.master.worksheet.focus_get()
+        if not entry: return
+        until_cursor = entry.get()[: entry.icursor('insert')]
+        if not until_cursor: return
+        last_char = until_cursor[-1]
+        if not last_char.isalpha() and not last_char.isdigit(): return
+        accent = self.data[event.widget['text']]
+        entry.insert(entry.index('insert'), '_' + accent)
