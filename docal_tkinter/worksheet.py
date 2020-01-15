@@ -16,6 +16,8 @@ from docal.parsing import UNIT_PF
 def augment_output(output, input_str):
     if output:
         return output
+    if input_str.startswith('#@'): # default options
+        return [(None, ('text', '[options]'))]
     if input_str.strip().startswith('#'):  # means a tag
         tag = input_str.strip()
         return [(None, ('tag', tag))]
@@ -55,6 +57,7 @@ class Worksheet(Frame):
         self.process = self.doc_obj.process
 
         self.autocomplete = Autocomplete(self)
+        self.current_input = None
 
         self.add(None)
 
@@ -320,6 +323,7 @@ class Step(Frame):
         return False if self.neighbour(1) else True
 
     def scroll_into_view(self, event):
+        self.master.current_input = self.input
         self.master.update()  # will always get winfo_y() = 0 without this
         view_range = self.master.canvas.yview()
         canvas_height = int(self.master.canvas['scrollregion'].split()[3])
