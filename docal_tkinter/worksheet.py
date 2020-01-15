@@ -93,13 +93,250 @@ class Worksheet(Frame):
         self.doc_obj.working_dict = {}
         for child in self.frame.winfo_children():
             child.render()
-        if not event_source.is_rendered():
+        if not event_source.output.winfo_ismapped():
             event_source.input.focus()
         elif not child.current_str.strip():
             child.edit(None)
 
     def delete(self, event):
         self.frame.winfo_children()[0].destroy()
+
+class Step(Frame):
+    def __init__(self, master, grand_master):
+        super().__init__(master, takefocus=0)
+        self.master = grand_master
+        self.grid_columnconfigure(0, weight=1)
+
+        self.input = Entry(self)
+        self.input_props = {
+            'kind': 'math',  # or text
+            'y': 0  # not always available, to be set at scroll_into_view, for autocomplete
+        }
+        self.output = None
+        self.output_props = {
+            'kind': None,  # disp or inline or text or tag
+        }
+        self.exception = Label(self, foreground='red', font=(None, 8))
+
+        self.input.bind('<Return>', self.on_return)
+        self.input.bind('<BackSpace>', self.merge)
+        self.input.bind('<Delete>', self.merge)
+        self.input.bind('<Control-Return>', self.split)
+        self.input.bind('<Shift-Return>', self.split)
+        self.input.bind('<Escape>', self.restore)
+        self.input.bind('<Up>', self.edit_neighbour)
+        self.input.bind('<Down>', self.edit_neighbour)
+        self.input.bind('<FocusIn>', self.scroll_into_view)
+        self.input.bind('<Tab>', self.autocomplete)
+        self.input.bind('<KeyRelease>', self.autocomplete)
+        self.bind('<1>', self.edit)
+
+        self.current_str = ''
+        self.mode = 'add'  # or edit
+
+        self.change_displayed('init')
+        self.input.focus()
+
+    def autocomplete(self, event):
+        menu = self.master.autocomplete
+        if event.keysym == 'Tab':
+            # prevent from firing many times
+            if str(event.type) != 'KeyPress' or not menu.winfo_ismapped():
+                return
+            direction = 1 if event.state == 8 else -1
+            menu.select_next(direction)
+            return 'break'
+        elif event.keysym in ('Shift_L', 'Shift_R'):
+            return
+        self.scroll_into_view(None)
+        menu.suggest(self.input, self.input_props['y'])
+
+    def change_displayed(self, kind='input'):
+        if kind == 'input':
+            self.output.grid_remove()
+            self.input.grid()
+            return
+        if kind == 'init':
+            self.input.grid(sticky='ew')
+            return
+        # output
+        self.input.grid_remove()
+        if self.output_props['kind'] != kind:
+            self.output_props['kind'] = kind
+            sticky = 'ew'
+            if kind == 'disp':
+                self.output = Canvas(self)
+                sticky = None
+            elif kind == 'inline':
+                self.output = Canvas(self)
+            elif kind == 'text':
+                width = self.input.winfo_width()
+                self.output = Label(self, font=self.master.text_font, wraplength=width)
+            else:  # tag
+                self.output = Label(self, font=(None, 10), foreground='blue')
+            self.output.bind('<1>', self.edit)
+            self.output.grid_configure(column=0, sticky=sticky)
+        self.output.grid()
+
+    def render_disp(self, math):
+        self.output.delete('all')
+        cwidth = math.size[0]*1.2
+        cheight = math.size[1]*1.2
+        math.coords = (math.size[0]*0.1, math.size[1]*0.1)
+
+        self.output.config(width=cwidth, height=cheight)
+        math.render(self.output)
+
+    def render_inline(self, math):
+        self.output.delete('all')
+        self.output.config(width=math.size[0], height=math.size[1])
+        math.render(self.output)
+
+    def render_text(self, text):
+        self.output.config(text=text)
+
+    def render_tag(self, tag):
+        self.output.config(text=tag)
+
+    def render(self):
+        self.current_str = self.input.get().replace('\n', ' ')
+        input_str = to_py(self.current_str)
+
+        try:
+            returned = augment_output(self.master.process(input_str), input_str)
+        except Exception as exc:
+            self.edit(None)
+            message = exc.args[0]
+            self.exception.config(text=message)
+            self.exception.grid(column=0, sticky='ew')
+            self.input.bind('<Key>', self.remove_err_msg)
+            return False
+        else:
+            self.exception.grid_remove()
+        kind, content = returned[0][1][0], returned[0][1][1]
+        self.change_displayed(kind)
+        self.__getattribute__('render_' + kind)(content)
+        return True
+
+    def on_return(self, event):
+        next_step = self.neighbour(1)
+        if event and next_step:  # means in the middle, update all
+            self.master.update_all(self)
+            return
+        did_render = self.render()
+        if next_step and next_step.output.winfo_ismapped():
+                next_step.input.focus()
+        elif did_render:
+            self.master.add(event)
+
+    def remove_err_msg(self, event):
+        self.exception.grid_remove()
+        self.input.unbind('<Key>')
+
+    def edit(self, event):
+        if self.output and self.output.winfo_ismapped():
+            self.change_displayed('input')
+        self.input.focus()
+        self.current_str = self.input.get()
+
+    def edit_neighbour(self, event):
+        direction = 1 if event.keysym == 'Down' else -1
+        neighbour = self.neighbour(direction)
+        if not neighbour:
+            return
+        if self.output and not self.exception.winfo_ismapped():
+            self.restore(None)
+        neighbour.edit(None)
+
+    def restore(self, event):
+        self.input.delete(0, 'end')
+        self.input.insert(0, self.current_str)
+        self.change_displayed(self.output_props['kind'])
+
+    def merge(self, event):
+        cursor_idx = self.input.index('insert')
+        if event.keysym == 'BackSpace':
+            if cursor_idx > 0:
+                return
+            insert_pos = 'end'
+            neighbour = self.neighbour(-1)
+        elif event.keysym == 'Delete':
+            if cursor_idx < self.input.index('end'):
+                return
+            insert_pos = 0
+            neighbour = self.neighbour(1)
+        else:
+            return
+        if not neighbour:
+            return
+        neighbour.edit(None)
+        if event.keysym == 'BackSpace':
+            cursor_idx = neighbour.input.index(insert_pos)
+        current_content = self.input.get()
+        neighbour.input.insert(insert_pos, current_content)
+        neighbour.input.icursor(cursor_idx)
+        self.destroy()
+
+    def split(self, event):
+        current_content = self.input.get()
+        i_cursor = self.input.index('insert')
+        self.input.delete(i_cursor, 'end')
+        self.render()
+
+        this_row = self.grid_info()['row']
+        if not self.is_last():
+            for step in self.master.frame.grid_slaves(column=0):
+                row = step.grid_info()['row']
+                if row > this_row:
+                    step.grid_forget()
+                    step.grid(row=row+1, sticky='ew')
+
+        new = self.master.add(None)
+        new.grid_forget()
+        new.grid(row=this_row + 1, sticky='ew')
+        new.input.insert(0, current_content[i_cursor:])
+        new.input.icursor(0)
+
+    def neighbour(self, direction=0):
+        n_row = self.grid_info()['row']
+        if n_row + direction < 0 or direction == 0:
+            return False
+        if direction < 0:
+            next_exists = lambda row: row > 0
+            increment = -1
+        else:
+            rowsize = self.master.frame.grid_size()[1]
+            next_exists = lambda row: row < rowsize
+            increment = 1
+        row = n_row
+        while next_exists(row):
+            row += increment
+            siblings = self.master.frame.grid_slaves(row=row)
+            if siblings:
+                return siblings[0]
+        return False
+
+    def is_last(self):
+        return False if self.neighbour(1) else True
+
+    def scroll_into_view(self, event):
+        self.master.update()  # will always get winfo_y() = 0 without this
+        view_range = self.master.canvas.yview()
+        canvas_height = int(self.master.canvas['scrollregion'].split()[3])
+        top_offset = self.winfo_y()
+        height = self.winfo_height()
+        # store info for autocomplete
+        self.input_props['y'] = top_offset + height - canvas_height * view_range[0]
+        to_bottom = top_offset + height > canvas_height * view_range[1]
+        to_top = top_offset < canvas_height * view_range[0]
+        if to_top:
+            offset = top_offset - view_range[0] * canvas_height
+        elif to_bottom:
+            offset = top_offset + height - canvas_height * view_range[1]
+        else:
+            return
+        new = offset / canvas_height + view_range[0]
+        self.master.canvas.yview_moveto(new)
 
 class Autocomplete(Listbox):
     def __init__(self, master):
@@ -171,265 +408,25 @@ class Autocomplete(Listbox):
         if not match:
             self.place_forget()
             return
-        current_word = match.group(0)
-        if not current_word.isidentifier():
+        trigger = match.group(0)
+        if not trigger.isidentifier():
             self.place_forget()
             return
+        len_trigger = len(trigger)
         matches = [key for key in self.master.doc_obj.working_dict
-                   if key.startswith(current_word)
+                   if key.startswith(trigger)
                    and not key.endswith(UNIT_PF)
-                   and len(key) > 1]
+                   and 1 < len_trigger < len(key)]
         if not matches:
             self.place_forget()
             return
         self.entry = entry
-        self.trigger = current_word
-        self.index_replace = (entry_cursor - len(current_word), entry_cursor)
+        self.trigger = trigger
+        self.index_replace = (entry_cursor - len(trigger), entry_cursor)
         self.listvar.set(' '.join(matches[:self.limit]))
-        coord_x = entry.winfo_x() + round(self.font.measure(current) * 0.811)
+        coord_x = entry.winfo_x() + round(self.font.measure(current[:self.index_replace[0]]) * 0.811) + self['borderwidth']
         self.place(x=coord_x, y=coord_y)
         self.select_next(0)
         self.config(height=self.size())
         self.len = self.size()
-
-class Step(Frame):
-    def __init__(self, master, grand_master):
-        super().__init__(master, takefocus=0)
-        self.master = grand_master
-
-        self.input = Entry(self, font=('TkTextFont',))
-        self.input_props = {
-            'kind': 'ascii',  # or python or excel
-            'y': 0  # not always available, to be set at scroll_into_view, for autocomplete
-        }
-        self.output = Canvas(self)
-        self.output_props = {
-            'kind': 'disp',  # or inline or text or tag
-            'pack': {}
-        }
-        self.exception = Label(self, foreground='red', font=(None, 8))
-
-        self.input.pack(fill='x')
-
-        self.input.bind('<Return>', self.on_return)
-        self.input.bind('<BackSpace>', self.merge)
-        self.input.bind('<Delete>', self.merge)
-        self.input.bind('<Control-Return>', self.split)
-        self.input.bind('<Shift-Return>', self.split)
-        self.input.bind('<Escape>', self.restore)
-        self.input.bind('<Up>', self.edit_neighbour)
-        self.input.bind('<Down>', self.edit_neighbour)
-        self.input.bind('<FocusIn>', self.scroll_into_view)
-        self.input.bind('<Tab>', self.autocomplete)
-        self.input.bind('<KeyRelease>', self.autocomplete)
-        self.output.bind('<1>', self.edit)
-        self.bind('<1>', self.edit)
-
-        self.input.focus()
-
-        self.current_str = ''
-        self.mode = 'add'  # or edit
-
-    def autocomplete(self, event):
-        menu = self.master.autocomplete
-        if event.keysym == 'Tab':
-            # prevent from firing many times
-            if str(event.type) != 'KeyPress' or not menu.winfo_ismapped():
-                return
-            direction = 1 if event.state == 8 else -1
-            menu.select_next(direction)
-            return 'break'
-        elif event.keysym in ('Shift_L', 'Shift_R'):
-            return
-        self.scroll_into_view(None)
-        menu.suggest(self.input, self.input_props['y'])
-
-    def set_output(self, kind):
-        '''cheap widget type change'''
-        self.input.pack_forget()
-        if self.output_props['kind'] == kind:
-            self.output.pack(**self.output_props['pack'])
-            return
-        self.output_props['kind'] = kind
-        self.output.destroy()
-        if kind == 'disp':
-            self.output = Canvas(self)
-            self.output_props['pack'] = {}
-        elif kind == 'inline':
-            self.output = Canvas(self)
-            self.output_props['pack'] = {'fill': 'x'}
-        elif kind == 'text':
-            width = self.input.winfo_width()
-            self.output = Label(self, font=self.master.text_font, wraplength=width)
-            self.output_props['pack'] = {'fill': 'x'}
-        else:  # tag
-            self.output = Label(self, font=(None, 10), foreground='blue')
-            self.output_props['pack'] = {'fill': 'x'}
-        self.output.pack(**self.output_props['pack'])
-        self.output.bind('<1>', self.edit)
-
-    def render_disp(self, math):
-        self.output.delete('all')
-        cwidth = math.size[0]*1.2
-        cheight = math.size[1]*1.2
-        math.coords = (math.size[0]*0.1, math.size[1]*0.1)
-
-        self.output.config(width=cwidth, height=cheight)
-        math.render(self.output)
-
-    def render_inline(self, math):
-        self.output.delete('all')
-        self.output.config(width=math.size[0], height=math.size[1])
-        math.render(self.output)
-
-    def render_text(self, text):
-        self.output.config(text=text)
-
-    def render_tag(self, tag):
-        self.output.config(text=tag)
-
-    def render(self):
-        self.current_str = self.input.get().replace('\n', ' ')
-        input_str = to_py(self.current_str)
-
-        try:
-            returned = augment_output(self.master.process(input_str), input_str)
-        except Exception as exc:
-            self.edit(None)
-            message = exc.args[0]
-            self.exception.config(text=message)
-            self.exception.pack(fill='x')
-            self.input.bind('<Key>', self.remove_err_msg)
-            return False
-        else:
-            self.exception.pack_forget()
-        kind, content = returned[0][1][0], returned[0][1][1]
-        self.set_output(kind)
-        self.__getattribute__('render_' + kind)(content)
-        return True
-
-    def on_return(self, event):
-        next_step = self.neighbour(1)
-        if event and next_step:  # means in the middle, update all
-            self.master.update_all(self)
-            return
-        did_render = self.render()
-        if next_step and next_step.is_rendered():
-                next_step.input.focus()
-        elif did_render:
-            self.master.add(event)
-
-    def remove_err_msg(self, event):
-        self.exception.pack_forget()
-        self.input.unbind('<Key>')
-
-    def edit(self, event):
-        if self.is_rendered():
-            self.remove_err_msg(event)
-            self.output.pack_forget()
-            self.input.pack(fill='x')
-        self.input.focus()
-        self.current_str = self.input.get()
-
-    def edit_neighbour(self, event):
-        direction = 1 if event.keysym == 'Down' else -1
-        neighbour = self.neighbour(direction)
-        if not neighbour:
-            return
-        if not self.exception.winfo_ismapped():
-            self.restore(None)
-        neighbour.edit(None)
-
-    def restore(self, event):
-        self.input.delete(0, 'end')
-        self.input.insert(0, self.current_str)
-        self.input.pack_forget()
-        self.output.pack(**self.output_props['pack'])
-
-    def merge(self, event):
-        cursor_idx = self.input.index('insert')
-        if event.keysym == 'BackSpace':
-            if cursor_idx > 0:
-                return
-            insert_pos = 'end'
-            neighbour = self.neighbour(-1)
-        elif event.keysym == 'Delete':
-            if cursor_idx < self.input.index('end'):
-                return
-            insert_pos = 0
-            neighbour = self.neighbour(1)
-        else:
-            return
-        if not neighbour:
-            return
-        neighbour.edit(None)
-        if event.keysym == 'BackSpace':
-            cursor_idx = neighbour.input.index(insert_pos)
-        current_content = self.input.get()
-        neighbour.input.insert(insert_pos, current_content)
-        neighbour.input.icursor(cursor_idx)
-        self.destroy()
-
-    def split(self, event):
-        current_content = self.input.get()
-        i_cursor = self.input.index('insert')
-        self.input.delete(i_cursor, 'end')
-        self.render()
-
-        this_row = self.grid_info()['row']
-        if not self.is_last():
-            for step in self.master.frame.grid_slaves(column=0):
-                row = step.grid_info()['row']
-                if row > this_row:
-                    step.grid_forget()
-                    step.grid(row=row+1, sticky='ew')
-
-        new = self.master.add(None)
-        new.grid_forget()
-        new.grid(row=this_row + 1, sticky='ew')
-        new.input.insert(0, current_content[i_cursor:])
-
-    def neighbour(self, direction=0):
-        n_row = self.grid_info()['row']
-        if n_row + direction < 0 or direction == 0:
-            return False
-        if direction < 0:
-            next_exists = lambda row: row > 0
-            increment = -1
-        else:
-            rowsize = self.master.frame.grid_size()[1]
-            next_exists = lambda row: row < rowsize
-            increment = 1
-        row = n_row
-        while next_exists(row):
-            row += increment
-            siblings = self.master.frame.grid_slaves(row=row)
-            if siblings:
-                return siblings[0]
-        return False
-
-    def is_last(self):
-        return False if self.neighbour(1) else True
-
-    def is_rendered(self):
-        return not isinstance(self.pack_slaves()[0], Entry)
-
-    def scroll_into_view(self, event):
-        self.master.update()  # will always get winfo_y() = 0 without this
-        view_range = self.master.canvas.yview()
-        canvas_height = int(self.master.canvas['scrollregion'].split()[3])
-        top_offset = self.winfo_y()
-        height = self.winfo_height()
-        # store info for autocomplete
-        self.input_props['y'] = top_offset + height - canvas_height * view_range[0]
-        to_bottom = top_offset + height > canvas_height * view_range[1]
-        to_top = top_offset < canvas_height * view_range[0]
-        if to_top:
-            offset = top_offset - view_range[0] * canvas_height
-        elif to_bottom:
-            offset = top_offset + height - canvas_height * view_range[1]
-        else:
-            return
-        new = offset / canvas_height + view_range[0]
-        self.master.canvas.yview_moveto(new)
 
