@@ -36,12 +36,12 @@ class Options(LabelFrame):
         super().__init__(master, text='Options')
 
         self.unit = Entry(self)
-        unit_label = Label(self, text='Unit: ')
+        unit_label = Label(self, text='Unit')
         unit_label.grid(sticky='ew', pady=10)
         self.unit.grid(row=0, column=1, sticky='ew')
 
         self.note = Entry(self)
-        note_label = Label(self, text='Note: ')
+        note_label = Label(self, text='Note')
         note_label.grid(sticky='ew')
         self.note.grid(row=1, column=1, sticky='ew')
 
@@ -67,9 +67,9 @@ class Options(LabelFrame):
         hidden = Checkbutton(self, text='Hidden', variable=self.v_hidden)
         hidden.grid(sticky='ew', columnspan=2)
 
-        clear_btn = Button(self, text='Clear', command=self.clear_options)
+        self.grid_rowconfigure(6, pad=10)
+        clear_btn = Button(self, text='Clear', command=self.clear_options, width=7)
         clear_btn.grid()
-
         insert_btn = Button(self, text='Insert', command=self.insert_options)
         insert_btn.grid(row=6, column=1, sticky='ew')
 
@@ -92,14 +92,13 @@ class Options(LabelFrame):
             options.append('-')
         if self.v_hidden.get():
             options.append(';')
-        if not options:
-            return
         self.clear_options()
         entry = self.master.master.worksheet.current_input
         if not entry: return
         current = entry.get()
         if current.strip():
-            entry.insert('end', ' # ' + ', '.join(options))
+            if options:
+                entry.insert('end', ' # ' + ', '.join(options))
         else:
             entry.insert('end', '#@ ' + ', '.join(options))
         entry.focus()
@@ -112,6 +111,7 @@ class Options(LabelFrame):
         i_del = len(current[:i_hash].rstrip())
         if i_hash == -1: return
         entry.delete(i_del, 'end')
+        entry.focus()
 
 class Greek(LabelFrame):
     def __init__(self, master):
