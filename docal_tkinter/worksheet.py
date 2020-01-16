@@ -5,13 +5,12 @@ from tkinter.ttk import Frame, Label, Entry, Scrollbar
 from tkinter import font, Canvas, Listbox, StringVar
 
 import sys
-sys.path.insert(1, 'd:/Documents/Code/Projects/tkinter-math')
-sys.path.insert(1, 'd:/Documents/Code/Projects/docal')
 # to render the math
 from tkinter_math import syntax, select_font
 from docal import document
 from docal.parsers.dcl import to_py
-from docal.parsing import UNIT_PF
+from docal.parsing import UNIT_PF, to_math
+from docal.handlers.latex import syntax as syntax_latex
 
 def augment_output(output, input_str):
     if output:
@@ -393,7 +392,7 @@ class Autocomplete(Listbox):
         if self.selected is None:
             selected = self.trigger
         else:
-            selected = self.selection_get()
+            selected = self.selection_get().split('=')[0]
         self.entry.delete(self.index_replace[0], self.index_replace[1])
         self.entry.insert(self.index_replace[0], selected)
         self.index_replace = self.index_replace[0], self.index_replace[0] + len(selected)
@@ -416,10 +415,18 @@ class Autocomplete(Listbox):
             self.place_forget()
             return
         len_trigger = len(trigger)
-        matches = [key for key in self.master.doc_obj.working_dict
-                   if key.startswith(trigger)
-                   and not key.endswith(UNIT_PF)
-                   and len_trigger < len(key)]
+        matches = []
+        space = self.master.doc_obj.working_dict
+        for key in space:
+            if key.startswith(trigger) and not key.endswith(UNIT_PF):
+                item = key
+                value = space[key]
+                if isinstance(value, (int, float)):
+                    unit = to_math(space[key + UNIT_PF], div='/', syntax=syntax_txt(), ital=False)
+                    item += '=' + str(value) + unit
+                elif isinstance(value, list):
+                    item += '[matrix]'
+                matches.append(item)
         if not matches:
             self.place_forget()
             return
@@ -433,3 +440,16 @@ class Autocomplete(Listbox):
         self.config(height=self.size())
         self.len = self.size()
 
+
+class syntax_txt:
+    halfsp = ''
+    greek_letters = []
+    math_accents = []
+    primes = []
+    transformed = []
+
+    def txt_rom(self, txt):
+        return txt
+
+    def txt(self, txt):
+        return txt
