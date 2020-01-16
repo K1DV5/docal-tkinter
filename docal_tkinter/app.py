@@ -10,12 +10,15 @@ class App(Tk):
     def __init__(self):
         super().__init__()
 
-        self.config(menu=Menubar(self))
-
         self.minsize(600, 470)
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
+
+        self.default_filename = 'Untitled'
+        self.filename = self.default_filename
+        self.change_filename(self.filename)
+        self.file_selected = False
 
         self.sidebar = Sidebar(self)
         self.worksheet = Worksheet(self)
@@ -24,3 +27,14 @@ class App(Tk):
         self.sidebar.grid(row=0, column=0, sticky='nsw')
         self.worksheet.grid(row=0, column=1, sticky='nsew')
         self.toolbar.grid(row=0, column=2, sticky='nse')
+
+        self.config(menu=Menubar(self))
+
+    def change_filename(self, filename=None):
+        if not filename:
+            filename = self.default_filename
+            self.file_selected = False
+            return
+        self.filename = filename
+        self.title(filename + ' - docal')
+        self.file_selected = True
