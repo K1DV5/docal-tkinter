@@ -1,6 +1,6 @@
 # -{cd .. | python -m docal_tkinter}
 from tkinter import Menu, filedialog, messagebox
-from json import dump, load
+from json import dump, loads, dumps
 
 class Menubar(Menu):
     def __init__(self, master):
@@ -34,16 +34,20 @@ class FileMenu(Menu):
         ]
 
         self.worksheet = self.master.master.worksheet
+        self.sidebar = self.master.master.sidebar
 
         self.bind_all('<Control-n>', lambda e: self.new())
         self.bind_all('<Control-o>', lambda e: self.open())
         self.bind_all('<Control-s>', lambda e: self.save())
 
-        self.sidebar = self.master.master.sidebar
+        self.current_file_contents = str(self.get_data())
+
+    def file_modified(self):
+        return str(self.get_data()) != self.current_file_contents
 
     def new(self):
         current = self.worksheet.frame.grid_slaves()
-        if not (len(current) == 1 and not current[0].current_str.strip()):  # maybe sth useful
+        if self.file_modified():  # maybe sth useful
             response = messagebox.askyesnocancel('Not saved', 'Save current file?')
             if response:
                 self.save_as()
@@ -62,7 +66,8 @@ class FileMenu(Menu):
         if not filename:
             return
         with open(filename) as file:
-            data = load(file)
+            self.current_file_contents = file.read()
+        data = loads(self.current_file_contents)
         self.worksheet.frame.grid_slaves()[0].destroy()
         for step in data['data'][0]['data']:
             wid = self.worksheet.add(None)
@@ -74,11 +79,12 @@ class FileMenu(Menu):
 
     def save(self):
         if self.master.master.file_selected:
-            self.to_file(self.master.master.filename)
+            with open(self.master.master.filename, 'w', encoding='utf-8') as file:
+                dump(self.get_data(), file, ensure_ascii=False)
         else:
             self.save_as()
 
-    def to_file(self, filename):
+    def get_data(self):
         steps = [step.input.get() for step in self.worksheet.frame.grid_slaves()]
         steps.reverse()
         data = {
@@ -91,8 +97,7 @@ class FileMenu(Menu):
                 }
             ]
         }
-        with open(filename, 'w', encoding='utf-8') as file:
-            dump(data, file, ensure_ascii=False, indent=4)
+        return data
 
     def save_as(self):
         filename = filedialog.asksaveasfilename(filetypes=self.filetypes[:-1],
@@ -101,10 +106,19 @@ class FileMenu(Menu):
                                                 )
         if not filename:  # cancelled
             return
-        self.to_file(filename)
+        self.current_file_contents = self.get_data()
+        with open(filename, 'w', encoding='utf-8') as file:
+            dump(self.current_file_contents, file, ensure_ascii=False)
+        self.current_file_contents = str(self.current_file_contents)
         self.master.master.change_filename(filename)
 
     def exit(self):
+        if self.file_modified():
+            response = messagebox.askyesnocancel('Not saved', 'File modified. Do you want to save it?')
+            if response:
+                self.save()
+            elif response is None:
+                return
         self.master.master.quit()
 
 class OpsMenu(Menu):
