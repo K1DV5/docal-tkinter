@@ -28,7 +28,9 @@ class App(Tk):
         self.worksheet.grid(row=0, column=1, sticky='nsew')
         self.toolbar.grid(row=0, column=2, sticky='nse')
 
-        self.config(menu=Menubar(self))
+        self.menu = Menubar(self)
+
+        self.config(menu=self.menu)
 
     def change_filename(self, filename=None):
         if not filename:
@@ -38,3 +40,4 @@ class App(Tk):
         self.filename = filename
         self.title(filename + ' - docal')
         self.file_selected = True
+

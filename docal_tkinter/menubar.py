@@ -6,7 +6,9 @@ class Menubar(Menu):
     def __init__(self, master):
         super().__init__(master, tearoff=0)
 
-        self.add_cascade(label='File', menu=FileMenu(self))
+        self.file_menu = FileMenu(self)
+
+        self.add_cascade(label='File', menu=self.file_menu)
         self.add_cascade(label='Operations', menu=OpsMenu(self))
         self.add_cascade(label='Help', menu=HelpMenu(self))
 
@@ -37,6 +39,8 @@ class FileMenu(Menu):
         self.bind_all('<Control-o>', lambda e: self.open())
         self.bind_all('<Control-s>', lambda e: self.save())
 
+        self.sidebar = self.master.master.sidebar
+
     def new(self):
         current = self.worksheet.frame.grid_slaves()
         if not (len(current) == 1 and not current[0].current_str.strip()):  # maybe sth useful
@@ -64,12 +68,13 @@ class FileMenu(Menu):
             wid = self.worksheet.add(None)
             wid.input.insert(0, step)
             wid.render()
+        self.sidebar.infile.set(data['infile'])
+        self.sidebar.outfile.set(data['outfile'])
         self.master.master.change_filename(filename)
 
     def save(self):
         if self.master.master.file_selected:
             self.to_file(self.master.master.filename)
-            print(self.master.master.filename)
         else:
             self.save_as()
 
@@ -77,8 +82,8 @@ class FileMenu(Menu):
         steps = [step.input.get() for step in self.worksheet.frame.grid_slaves()]
         steps.reverse()
         data = {
-            'infile': None,
-            'outfile': None,
+            'infile': self.sidebar.infile.get(),
+            'outfile': self.sidebar.outfile.get(),
             'data': [
                 {
                     'type': 'ascii',
@@ -106,23 +111,13 @@ class OpsMenu(Menu):
     def __init__(self, master):
         super().__init__(master, tearoff=0)
 
-        self.add_command(label='Select input document', command=self.select_infile)
-        self.add_command(label='Clear input document', command=self.clear_infile)
-        self.add_command(label='Select output document', command=self.select_outfile)
+        self.sidebar = self.master.master.sidebar
+
+        self.add_command(label='Select input document', command=self.sidebar.infile_area.select_infile)
+        self.add_command(label='Clear input document', command=self.sidebar.clear_calcs)
+        self.add_command(label='Select output document', command=self.sidebar.outfile_area.select_outfile)
         self.add_separator()
-        self.add_command(label='Send calculations', command=self.send_calcs)
-
-    def select_infile(self):
-        print('sel in')
-
-    def clear_infile(self):
-        print('clear')
-
-    def select_outfile(self):
-        print('sel out')
-
-    def send_calcs(self):
-        print('Send')
+        self.add_command(label='Send calculations', command=self.sidebar.send_calcs)
 
 class HelpMenu(Menu):
     def __init__(self, master):
