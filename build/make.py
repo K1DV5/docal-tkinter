@@ -1,8 +1,7 @@
 from subprocess import run
-from pprint import pprint
 from glob import glob
-from os import walk, remove, path, sep as pathsep, getcwd
-from shutil import copy, copytree, rmtree, move
+from os import walk, path, sep as pathsep
+from shutil import copy, move
 import pkg_resources as pr
 import zipfile as zf
 import re
@@ -11,14 +10,19 @@ VERSION = pr.get_distribution('docal').version
 NAME = 'docal'
 DIR = 'docal_tkinter.dist'
 ASSETS_DIR = path.join(DIR, 'assets')
+ICON = '../docal.ico'
 
-args = ['python', '-m', 'nuitka',
-        '--standalone',
-        '--plugin-enable=tk-inter',
-        '--windows-icon=docal.ico',
-        '--windows-disable-console',
-        # '--windows-dependency-tool=pefile',
-        '../docal_tkinter']
+def build():
+    args = ['python', '-m', 'nuitka',
+            '--standalone',
+            '--plugin-enable=tk-inter',
+            '--windows-icon=../docal.ico',
+            '--windows-disable-console',
+            # '--windows-dependency-tool=pefile',
+            '../docal_tkinter']
+    if run(args).returncode == 0:
+        move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
+        copy(ICON, path.join(DIR, path.basename(ICON)))
 
 def create_installer():
     '''update the version and the files in the installer'''
@@ -59,9 +63,7 @@ def build_zip():
 
 # TASKS:
 # -----------
-
-# if run(args).returncode == 0:
-#     move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
-    # copy_assets()
+# build()
+# copy_assets()
 build_zip()
-    # create_installer()
+# create_installer()

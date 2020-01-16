@@ -4,6 +4,7 @@ from .sidebar import Sidebar
 from .worksheet import Worksheet
 from .menubar import Menubar
 from .toolbar import Toolbar
+from os import path
 
 
 class App(Tk):
@@ -11,6 +12,7 @@ class App(Tk):
         super().__init__()
 
         self.minsize(600, 470)
+        self.after_idle(self.iconbitmap, path.abspath('./docal.ico'))
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
