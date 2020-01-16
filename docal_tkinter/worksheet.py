@@ -128,7 +128,7 @@ class Step(Frame):
         self.input.bind('<Escape>', self.restore)
         self.input.bind('<Up>', self.edit_neighbour)
         self.input.bind('<Down>', self.edit_neighbour)
-        self.input.bind('<FocusIn>', self.scroll_into_view)
+        self.input.bind('<FocusIn>', self.on_focus)
         self.input.bind('<Tab>', self.autocomplete)
         self.input.bind('<KeyRelease>', self.autocomplete)
         self.bind('<1>', self.edit)
@@ -150,7 +150,7 @@ class Step(Frame):
             return 'break'
         elif event.keysym in ('Shift_L', 'Shift_R'):
             return
-        self.scroll_into_view(None)
+        self.scroll_into_view()
         menu.suggest(self.input, self.input_props['y'])
 
     def change_displayed(self, kind='input'):
@@ -321,7 +321,22 @@ class Step(Frame):
     def is_last(self):
         return False if self.neighbour(1) else True
 
-    def scroll_into_view(self, event):
+    def on_focus(self, event):
+        self.scroll_into_view()
+        # update the values above
+        self.master.doc_obj.working_dict = {}
+        this_row = self.grid_info()['row']
+        steps = self.master.frame.grid_slaves()
+        i = len(steps) - 1
+        if not steps:
+            return
+        while i > -1:
+            if steps[i].grid_info()['row'] == this_row:
+                break
+            steps[i].render()
+            i -= 1
+
+    def scroll_into_view(self):
         self.master.current_input = self.input
         self.master.update()  # will always get winfo_y() = 0 without this
         view_range = self.master.canvas.yview()
@@ -442,6 +457,7 @@ class Autocomplete(Listbox):
 
 
 class syntax_txt:
+    '''for units on completion'''
     halfsp = ''
     greek_letters = []
     math_accents = []
