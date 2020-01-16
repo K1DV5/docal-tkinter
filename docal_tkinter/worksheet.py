@@ -459,13 +459,13 @@ class Autocomplete(Listbox):
 class syntax_txt:
     '''for units on completion'''
     halfsp = ''
-    greek_letters = []
-    math_accents = []
-    primes = []
-    transformed = []
+    greek_letters = math_accents = primes = transformed = []
 
     def txt_rom(self, txt):
         return txt
 
     def txt(self, txt):
         return txt
+
+    def sup(self, base, sup):
+        return base + '^' + sup
