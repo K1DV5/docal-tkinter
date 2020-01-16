@@ -25,7 +25,7 @@ class Sidebar(Frame):
         self.send_btn = Button(self, text='Send', command=self.send_calcs)
         self.send_btn.grid(sticky='ew', padx='.25cm')
 
-    def prepare(self):
+    def prepare(self, clear=False):
         ext = path.splitext(self.infile.get())[1]
         if ext == '.docx':
             handler = word.handler
@@ -33,11 +33,17 @@ class Sidebar(Frame):
             handler = latex.handler
         else:
             return False
-        doc = document(self.infile.get(), self.outfile.get(), handler=handler)
+        doc = document(self.infile.get(), self.outfile.get(), handler=handler, to_clear=clear)
         return doc
 
     def clear_calcs(self):
         ext = path.splitext(self.infile.get())[1]
+        if ext != '.tex':
+            self.bell()
+            return
+        doc = self.prepare(True)
+        doc.write()
+        messagebox.showinfo('Success', 'Cleared.')
 
     def send_calcs(self):
         doc = self.prepare()
