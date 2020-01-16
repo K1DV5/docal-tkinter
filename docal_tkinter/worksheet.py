@@ -91,17 +91,30 @@ class Worksheet(Frame):
         step.grid(sticky='ew')
         return step
 
-    def update_all(self, event_source):
+    def update_above(self, step):
         self.doc_obj.working_dict = {}
-        for child in self.frame.winfo_children():
-            child.render()
-        if not event_source.output.winfo_ismapped():
-            event_source.input.focus()
-        elif not child.current_str.strip():
-            child.edit(None)
+        this_row = step.grid_info()['row']
+        steps = self.frame.grid_slaves()
+        if not steps:
+            return
+        i = len(steps) - 1
+        while i > -1:
+            if steps[i].grid_info()['row'] == this_row:
+                break
+            steps[i].render()
+            i -= 1
 
-    def delete(self, event):
-        self.frame.winfo_children()[0].destroy()
+    def update_below(self, step):
+        steps = self.frame.grid_slaves()
+        if not steps:
+            return
+        this_row = step.grid_info()['row']
+        i = len(steps) - 1
+        while i > -1:
+            row = steps[i].grid_info()['row']
+            if row > this_row:
+                steps[i].render()
+            i -= 1
 
 class Step(Frame):
     def __init__(self, master, grand_master):
@@ -114,7 +127,7 @@ class Step(Frame):
             'kind': 'math',  # or text
             'y': 0  # not always available, to be set at scroll_into_view, for autocomplete
         }
-        self.output = None
+        self.output = Label(self, text='')
         self.output_props = {
             'kind': None,  # disp or inline or text or tag
         }
@@ -165,6 +178,7 @@ class Step(Frame):
         self.input.grid_remove()
         if self.output_props['kind'] != kind:
             self.output_props['kind'] = kind
+            self.output.destroy()
             sticky = 'ew'
             if kind == 'disp':
                 self.output = Canvas(self)
@@ -221,13 +235,14 @@ class Step(Frame):
         return True
 
     def on_return(self, event):
-        next_step = self.neighbour(1)
-        if event and next_step:  # means in the middle, update all
-            self.master.update_all(self)
-            return
         did_render = self.render()
-        if next_step and next_step.output.winfo_ismapped():
+        next_step = self.neighbour(1)
+        if next_step:  # means in the middle, update below
+            self.master.update_below(self)
+            if next_step.input.winfo_ismapped():
                 next_step.input.focus()
+            elif not next_step.input.get().strip():
+                next_step.edit(None)
         elif did_render:
             self.master.add(event)
 
@@ -236,7 +251,7 @@ class Step(Frame):
         self.input.unbind('<Key>')
 
     def edit(self, event):
-        if self.output and self.output.winfo_ismapped():
+        if self.output.winfo_ismapped():
             self.change_displayed('input')
         self.input.focus()
         self.current_str = self.input.get()
@@ -245,8 +260,9 @@ class Step(Frame):
         direction = 1 if event.keysym == 'Down' else -1
         neighbour = self.neighbour(direction)
         if not neighbour:
+            self.bell()
             return
-        if self.output and not self.exception.winfo_ismapped():
+        if not self.exception.winfo_ismapped():
             self.restore(None)
         neighbour.edit(None)
 
@@ -324,17 +340,7 @@ class Step(Frame):
     def on_focus(self, event):
         self.scroll_into_view()
         # update the values above
-        self.master.doc_obj.working_dict = {}
-        this_row = self.grid_info()['row']
-        steps = self.master.frame.grid_slaves()
-        i = len(steps) - 1
-        if not steps:
-            return
-        while i > -1:
-            if steps[i].grid_info()['row'] == this_row:
-                break
-            steps[i].render()
-            i -= 1
+        self.master.update_above(self)
 
     def scroll_into_view(self):
         self.master.current_input = self.input

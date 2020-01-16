@@ -53,7 +53,7 @@ class Options(LabelFrame):
         step_1.grid(sticky='ew', padx=10)
         step_2.grid(sticky='ew', padx=10)
         step_3.grid(sticky='ew', padx=10)
-        steps.grid(sticky='ew', columnspan=2, pady=10)
+        steps.grid(sticky='ew', columnspan=2, pady=10, padx=10)
 
         self.v_inline = IntVar(self, value=0)
         inline = Checkbutton(self, text='Inline', variable=self.v_inline)
