@@ -46,18 +46,24 @@ class Sidebar(Frame):
         messagebox.showinfo('Success', 'Cleared.')
 
     def send_calcs(self):
-        doc = self.prepare()
-        if not doc:
-            self.bell()
-            messagebox.showerror('Error', 'Filetype not supported.')
-            return
-        self.master.menu.file_menu.save()
-        doc.send(parse(self.master.filename))
-        doc.write()
-        message = ''
-        if doc.log:
-            message = '\n'.join(doc.log) + '\n\n'
-        messagebox.showinfo('Success', message + 'Sent successfully.')
+        try:
+            doc = self.prepare()
+            if not doc:
+                self.bell()
+                messagebox.showerror('Error', 'Filetype not supported.')
+                return
+            self.master.menu.file_menu.save()
+            doc.send(parse(self.master.filename))
+            doc.write()
+        except Exception as e:
+            messagebox.showerror('Error', 'Internal error:\n' + str(e.args))
+        else:
+            self.infile.set(doc.document_file.infile)
+            self.outfile.set(doc.document_file.outfile)
+            message = ''
+            if doc.log:
+                message = '\n'.join(doc.log) + '\n\n'
+            messagebox.showinfo('Success', message + 'Sent successfully.')
 
     def open_file(self, which):
         '''open with default viewer'''
