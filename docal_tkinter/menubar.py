@@ -6,14 +6,10 @@ class Menubar(Menu):
     def __init__(self, master):
         super().__init__(master, tearoff=0)
 
-        self.file_menu = FileMenu(self)
-
-        self.add_cascade(label='File', menu=self.file_menu)
+        self.add_cascade(label='File', menu=FileMenu(self))
+        self.add_cascade(label='Edit', menu=EditMenu(self))
         self.add_cascade(label='Operations', menu=OpsMenu(self))
         self.add_cascade(label='Help', menu=HelpMenu(self))
-
-    def say(self):
-        print('say hi')
 
 class FileMenu(Menu):
     def __init__(self, master):
@@ -120,6 +116,27 @@ class FileMenu(Menu):
             elif response is None:
                 return
         self.master.master.quit()
+
+class EditMenu(Menu):
+    def __init__(self, master):
+        super().__init__(master, tearoff=0)
+
+        self.worksheet = self.master.master.worksheet
+
+        self.add_command(label='Cut', command=lambda: self.clipboard('Cut'), accelerator='Ctrl+X')
+        self.add_command(label='Copy', command=lambda: self.clipboard('Copy'), accelerator='Ctrl+C')
+        self.add_command(label='Paste', command=lambda: self.clipboard('Paste'), accelerator='Ctrl+V')
+
+        self.add_separator()
+
+        self.add_command(label='Undo', command=lambda: self.worksheet.undo(None), accelerator='Ctrl+Z')
+        self.add_command(label='Redo', command=lambda: self.worksheet.redo(None), accelerator='Ctrl+Y')
+
+    def clipboard(self, action):
+        entry = self.worksheet.current_input
+        if not entry.winfo_ismapped():
+            return
+        entry.event_generate(f'<<{action}>>')
 
 class OpsMenu(Menu):
     def __init__(self, master):
