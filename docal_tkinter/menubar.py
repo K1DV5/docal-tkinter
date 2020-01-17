@@ -132,11 +132,17 @@ class EditMenu(Menu):
         self.add_command(label='Undo', command=lambda: self.worksheet.undo(None), accelerator='Ctrl+Z')
         self.add_command(label='Redo', command=lambda: self.worksheet.redo(None), accelerator='Ctrl+Y')
 
+        self.bind_all('<3>', self.show_context)
+
     def clipboard(self, action):
         entry = self.worksheet.current_input
         if not entry.winfo_ismapped():
             return
         entry.event_generate(f'<<{action}>>')
+
+    def show_context(self, event):
+        '''for right click'''
+        self.post(event.x_root, event.y_root)
 
 class OpsMenu(Menu):
     def __init__(self, master):
