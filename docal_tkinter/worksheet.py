@@ -58,6 +58,12 @@ class Worksheet(Frame):
         self.autocomplete = Autocomplete(self)
         self.current_input = None
 
+        # for undo/redo
+        self.history = []
+        self.i_history = 'head'
+        self.bind_all('<Control-z>', self.undo)
+        self.bind_all('<Control-y>', self.redo)
+
         self.add(None)
 
     def scrolled_frame(self):
@@ -91,6 +97,10 @@ class Worksheet(Frame):
         step.grid(sticky='ew')
         return step
 
+    def remove(self, step):
+        self.add_history('delete', step)
+        step.grid_remove()
+
     def update_above(self, step):
         self.doc_obj.working_dict = {}
         this_row = step.grid_info()['row']
@@ -115,6 +125,60 @@ class Worksheet(Frame):
             if row > this_row:
                 steps[i].render()
             i -= 1
+
+    def add_history(self, action, step):
+        # print(self.i_history)
+        # for e in self.history:
+        #     print(e[0], e[1].current_str)
+        if self.i_history != 'head':  # delete the old branch
+            to_purge = self.history[self.i_history:]
+            for event in to_purge:
+                event[1].destroy()
+            self.history = self.history[:self.i_history]
+            self.i_history = 'head'
+        if action == 'add':
+            self.history.append(('+', step))
+        elif action == 'edit':
+            last_data = step.current_str
+            self.history.append(('/', step, last_data))
+        elif action == 'delete':
+            self.history.append(('-', step))
+
+    def undo(self, event):
+        len_history = len(self.history)
+        i_history = len_history if self.i_history == 'head' else self.i_history
+        if not len_history or i_history == 0:
+            self.bell()
+            return
+        self.i_history = i_history - 1
+        last = self.history[self.i_history]
+        if last[0] == '+':
+            last[1].grid_remove()
+        elif last[0] == '-':
+            self.recover(last[1])
+
+    def redo(self, event):
+        if self.i_history == 'head':
+            self.bell()
+            return
+        recent = self.history[self.i_history]
+        if recent[0] == '+':
+            self.recover(recent[1])
+        elif recent[0] == '-':
+            recent[1].grid_remove()
+        else:
+            print(recent)
+            return
+        self.i_history += 1
+        if self.i_history == len(self.history):
+            self.i_history = 'head'
+
+    def recover(self, step):
+        step.grid()
+        step.input.delete(0, 'end')
+        step.input.insert(0, step.current_str)
+        if step.is_last() and step.current_str.strip():
+            step.render()
 
 class Step(Frame):
     def __init__(self, master, grand_master):
@@ -147,7 +211,7 @@ class Step(Frame):
         self.bind('<1>', self.edit)
 
         self.current_str = ''
-        self.mode = 'add'  # or edit
+        self.is_new = True # for undo
 
         self.change_displayed('init')
         self.input.focus()
@@ -235,6 +299,7 @@ class Step(Frame):
         return True
 
     def on_return(self, event):
+        last_str = self.current_str
         did_render = self.render()
         next_step = self.neighbour(1)
         if next_step:  # means in the middle, update below
@@ -245,6 +310,12 @@ class Step(Frame):
                 next_step.edit(None)
         elif did_render:
             self.master.add(event)
+        # save to history, for undo
+        if self.is_new:
+            self.master.add_history('add', self)
+            self.is_new = False
+        else:
+            self.master.add_history('edit', self, last_str)
 
     def remove_err_msg(self, event):
         self.exception.grid_remove()
@@ -254,7 +325,6 @@ class Step(Frame):
         if self.output.winfo_ismapped():
             self.change_displayed('input')
         self.input.focus()
-        self.current_str = self.input.get()
 
     def edit_neighbour(self, event):
         direction = 1 if event.keysym == 'Down' else -1
@@ -293,7 +363,7 @@ class Step(Frame):
         current_content = self.input.get()
         neighbour.input.insert(insert_pos, current_content)
         neighbour.input.icursor(cursor_idx)
-        self.destroy()
+        self.master.remove(self)
 
     def split(self, event):
         current_content = self.input.get()
@@ -314,6 +384,8 @@ class Step(Frame):
         new.grid(row=this_row + 1, sticky='ew')
         new.input.insert(0, current_content[i_cursor:])
         new.input.icursor(0)
+        # to undo stack
+        self.master.add_history('add', new)
 
     def neighbour(self, direction=0):
         n_row = self.grid_info()['row']
