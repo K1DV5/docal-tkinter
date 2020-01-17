@@ -126,10 +126,7 @@ class Worksheet(Frame):
                 steps[i].render()
             i -= 1
 
-    def add_history(self, action, step):
-        # print(self.i_history)
-        # for e in self.history:
-        #     print(e[0], e[1].current_str)
+    def add_history(self, action, step, additional=None):
         if self.i_history != 'head':  # delete the old branch
             to_purge = self.history[self.i_history:]
             for event in to_purge:
@@ -137,12 +134,12 @@ class Worksheet(Frame):
             self.history = self.history[:self.i_history]
             self.i_history = 'head'
         if action == 'add':
-            self.history.append(('+', step))
+            self.history.append(['+', step])
         elif action == 'edit':
             last_data = step.current_str
-            self.history.append(('/', step, last_data))
+            self.history.append(['/', step, additional])
         elif action == 'delete':
-            self.history.append(('-', step))
+            self.history.append(['-', step])
 
     def undo(self, event):
         len_history = len(self.history)
@@ -156,6 +153,10 @@ class Worksheet(Frame):
             last[1].grid_remove()
         elif last[0] == '-':
             self.recover(last[1])
+        elif last[0] == '/':
+            current = self.change_text(last[1], last[2])
+            # for redo
+            last[2] = current
 
     def redo(self, event):
         if self.i_history == 'head':
@@ -166,19 +167,33 @@ class Worksheet(Frame):
             self.recover(recent[1])
         elif recent[0] == '-':
             recent[1].grid_remove()
+        elif recent[0] == '/':
+            current = self.change_text(recent[1], recent[2])
+            # for undo
+            recent[2] = current
         else:
-            print(recent)
             return
         self.i_history += 1
         if self.i_history == len(self.history):
             self.i_history = 'head'
 
     def recover(self, step):
+        '''bring back removed steps from the dead'''
         step.grid()
         step.input.delete(0, 'end')
         step.input.insert(0, step.current_str)
         if step.is_last() and step.current_str.strip():
             step.render()
+
+    def change_text(self, step, text):
+        '''replace the input text in step with text'''
+        current_txt = step.input.get()
+        step.input.delete(0, 'end')
+        step.input.insert(0, text)
+        step.render()
+        self.update_below(step)
+        return current_txt
+
 
 class Step(Frame):
     def __init__(self, master, grand_master):
