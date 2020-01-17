@@ -64,7 +64,7 @@ class Worksheet(Frame):
         self.bind_all('<Control-z>', self.undo)
         self.bind_all('<Control-y>', self.redo)
 
-        self.add(None)
+        self.update_above(self.add(None))
 
     def scrolled_frame(self):
         '''make a frame with a scrollbar and that can be scrolled with mouse'''
@@ -97,12 +97,9 @@ class Worksheet(Frame):
         step.grid(sticky='ew')
         return step
 
-    def remove(self, step):
-        self.add_history('delete', step)
-        step.grid_remove()
-
     def update_above(self, step):
         self.doc_obj.working_dict = {}
+        self.process('from math import *')  # scientific math funcs
         this_row = step.grid_info()['row']
         steps = self.frame.grid_slaves()
         if not steps:
@@ -111,7 +108,7 @@ class Worksheet(Frame):
         while i > -1:
             if steps[i].grid_info()['row'] == this_row:
                 break
-            steps[i].render()
+            steps[i].render(False)  # only update the values
             i -= 1
 
     def update_below(self, step):
@@ -177,13 +174,23 @@ class Worksheet(Frame):
         if self.i_history == len(self.history):
             self.i_history = 'head'
 
+    def remove(self, step):
+        '''take the step to the graveyard'''
+        self.add_history('delete', step)
+        next_step = step.neighbour(1)
+        if next_step:
+            self.update_above(next_step)
+        else:
+            self.update_above(step)
+        step.grid_remove()  # to remember the grid data
+
     def recover(self, step):
         '''bring back removed steps from the dead'''
-        step.grid()
+        step.grid()  # reuse grid data
         step.input.delete(0, 'end')
         step.input.insert(0, step.current_str)
-        if step.is_last() and step.current_str.strip():
-            step.render()
+        self.update_above(step)
+        step.render()
 
     def change_text(self, step, text):
         '''replace the input text in step with text'''
@@ -293,12 +300,14 @@ class Step(Frame):
     def render_tag(self, tag):
         self.output.config(text=tag)
 
-    def render(self):
+    def render(self, show=True):
         self.current_str = self.input.get().replace('\n', ' ')
         input_str = to_py(self.current_str)
 
         try:
             returned = augment_output(self.master.process(input_str), input_str)
+            if not show:  # only update the data
+                return True
         except Exception as exc:
             self.edit(None)
             message = exc.args[0]
@@ -315,7 +324,14 @@ class Step(Frame):
 
     def on_return(self, event):
         last_str = self.current_str
-        did_render = self.render()
+        if not self.render():
+            return
+        # save to history, for undo
+        if self.is_new:
+            self.master.add_history('add', self)
+            self.is_new = False
+        else:
+            self.master.add_history('edit', self, last_str)
         next_step = self.neighbour(1)
         if next_step:  # means in the middle, update below
             self.master.update_below(self)
@@ -323,14 +339,8 @@ class Step(Frame):
                 next_step.input.focus()
             elif not next_step.input.get().strip():
                 next_step.edit(None)
-        elif did_render:
-            self.master.add(event)
-        # save to history, for undo
-        if self.is_new:
-            self.master.add_history('add', self)
-            self.is_new = False
-        else:
-            self.master.add_history('edit', self, last_str)
+            return
+        self.master.add(event)
 
     def remove_err_msg(self, event):
         self.exception.grid_remove()
@@ -530,10 +540,16 @@ class Autocomplete(Listbox):
                 item = key
                 value = space[key]
                 if isinstance(value, (int, float)):
-                    unit = to_math(space[key + UNIT_PF], div='/', syntax=syntax_txt(), ital=False)
-                    item += '=' + str(value) + unit
+                    item += '=' + str(value)
+                    if key + UNIT_PF in space:  # has unit
+                        item += to_math(space[key + UNIT_PF],
+                                        div='/', syntax=syntax_txt(),
+                                        ital=False
+                                        )
                 elif isinstance(value, list):
-                    item += '[matrix]'
+                    item += '=[matrix]'
+                elif callable(value):
+                    item += '=[function]'
                 matches.append(item)
         if not matches:
             self.place_forget()

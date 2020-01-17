@@ -6,7 +6,9 @@ class Menubar(Menu):
     def __init__(self, master):
         super().__init__(master, tearoff=0)
 
-        self.add_cascade(label='File', menu=FileMenu(self))
+        self.file_menu = FileMenu(self)
+
+        self.add_cascade(label='File', menu=self.file_menu)
         self.add_cascade(label='Edit', menu=EditMenu(self))
         self.add_cascade(label='Operations', menu=OpsMenu(self))
         self.add_cascade(label='Help', menu=HelpMenu(self))
@@ -167,4 +169,4 @@ class HelpMenu(Menu):
         print('help')
 
     def about(self):
-        print('about')
+        messagebox.showinfo('About', 'docal\n\n2.2.1\n\n2020')
