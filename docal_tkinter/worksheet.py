@@ -101,7 +101,10 @@ class Worksheet(Frame):
             self.add_history('add', step, next_to)
         else:
             step.grid(sticky='ew')
-        step.edit(None)
+        if next_to == 0:
+            step.is_new = False  # for when opening file
+        else:
+            step.edit(None)
         return step
 
     def update_above(self, step):
@@ -122,7 +125,7 @@ class Worksheet(Frame):
         steps = self.frame.grid_slaves()
         if not steps:
             return
-        this_row = step.grid_info()['row']
+        this_row = step.grid_info()['row'] if step else -1
         i = len(steps) - 1
         while i > -1:
             row = steps[i].grid_info()['row']
@@ -141,7 +144,6 @@ class Worksheet(Frame):
         self.history.append([action, step, additional])
 
     def undo(self, event):
-        self.autocomplete.place_forget()  # stays visible sometimes
         len_history = len(self.history)
         i_history = len_history if self.i_history == 'head' else self.i_history
         if not len_history or i_history == 0:
@@ -166,7 +168,6 @@ class Worksheet(Frame):
             self.update_below(last[1])
 
     def redo(self, event):
-        self.autocomplete.place_forget()  # stays visible sometimes
         if self.i_history == 'head':
             self.bell()
             return
@@ -256,6 +257,9 @@ class Step(Frame):
             return 'break'
         elif event.keysym in ('Shift_L', 'Shift_R'):
             return
+        elif event.keysym in ('Return', 'Escape'):
+            menu.place_forget()  # prevent visibility after render
+            return
         self.scroll_into_view()
         menu.suggest(self.input, self.input_props['y'])
 
@@ -333,16 +337,13 @@ class Step(Frame):
         last_str = self.current_str  # before changing, for undo
         if not self.render():
             return
-        # save to history, for undo
-        if self.is_new:
-            self.is_new = False
-            self.master.add(self)
-            return
-        self.master.add_history('edit', self, last_str)
         next_step = self.neighbour(1)
         if not next_step:  # means last
             self.master.add(self)
             return
+        if self.is_new:
+            self.is_new = False
+        self.master.add_history('edit', self, last_str) # for undo
         self.master.update_below(self)
         if next_step.input.winfo_ismapped():
             next_step.input.focus()
@@ -406,11 +407,11 @@ class Step(Frame):
 
         this_row = self.grid_info()['row']
         if not self.is_last():
+            # make place for the new one
             for step in self.master.frame.grid_slaves(column=0):
                 row = step.grid_info()['row']
                 if row > this_row:
-                    step.grid_forget()
-                    step.grid(row=row+1, sticky='ew')
+                    step.grid_configure(row=row+1)
 
         new = self.master.add(self)
         new.input.insert(0, current_content[i_cursor:])
@@ -519,25 +520,11 @@ class Autocomplete(Listbox):
         self.entry.insert(self.index_replace[0], selected)
         self.index_replace = self.index_replace[0], self.index_replace[0] + len(selected)
 
-    def not_needed(self, text):
-        return text.endswith(' ')
-
-    def suggest(self, entry, coord_y):
-        entry_cursor = entry.index('insert')
-        current = entry.get()[:entry_cursor]
-        if self.not_needed(current):
-            self.place_forget()
-            return
-        match = self.pattern.search(current)
-        if not match:
-            self.place_forget()
-            return
-        trigger = match.group(0)
-        if not trigger.isidentifier():
-            self.place_forget()
-            return
+    def build_matches(self, trigger):
+        '''build the completion list'''
+        if not trigger.isidentifier(): return []
         len_trigger = len(trigger)
-        matches = []
+        matches, fillers = [], []  # fillers shown if len(matches) < limit
         space = self.master.doc_obj.working_dict
         for key in space:
             if key.startswith(trigger) and not key.endswith(UNIT_PF):
@@ -551,16 +538,30 @@ class Autocomplete(Listbox):
                                         syntax=syntax_txt(),
                                         ital=False)
                 elif isinstance(value, list):
-                    item += '=[matrix]'
+                    item += '=[mat]'
                 elif callable(value):
-                    item += '=[function]'
+                    fillers.append(item + '=[func]')
+                    continue
                 matches.append(item)
+        n_matches = len(matches)
+        if n_matches < self.limit:
+            matches += fillers[:self.limit - n_matches]
+        return matches
+
+    def suggest(self, entry, coord_y):
+        entry_cursor = entry.index('insert')
+        current = entry.get()[:entry_cursor]
+        match = self.pattern.search(current)
+        if not match:
+            self.place_forget()
+            return
+        self.trigger = match.group(0)
+        matches = self.build_matches(self.trigger)
         if not matches:
             self.place_forget()
             return
         self.entry = entry
-        self.trigger = trigger
-        self.index_replace = (entry_cursor - len(trigger), entry_cursor)
+        self.index_replace = (entry_cursor - len(self.trigger), entry_cursor)
         self.listvar.set(' '.join(matches[:self.limit]))
         coord_x = entry.winfo_x() + round(self.font.measure(current[:self.index_replace[0]]) * 0.811) + self['borderwidth']
         self.place(x=coord_x, y=coord_y)
