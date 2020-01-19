@@ -2,13 +2,14 @@ from subprocess import run
 from glob import glob
 from os import walk, path, sep as pathsep
 from shutil import copy, move
-import pkg_resources as pr
+import pkg_resources
 import zipfile as zf
 import re
 
-VERSION = pr.get_distribution('docal').version
+VERSION = pkg_resources.get_distribution('docal').version
 NAME = 'docal'
 DIR = 'docal_tkinter.dist'
+INSTALLER_TEMPLATE = 'installer-script.nsi'
 ASSETS_DIR = path.join(DIR, 'assets')
 ICON = '../docal.ico'
 
@@ -27,7 +28,6 @@ def build():
 def create_installer():
     '''update the version and the files in the installer'''
 
-    installer_name = 'installer-script.nsi'
     file_commands = []
     dir_commands = []
     file_list = glob(path.join(DIR, '**', '*'), recursive=True)
@@ -40,16 +40,17 @@ def create_installer():
     # this will ensure that deletion will start from the inner most folder
     dir_commands.sort(key=lambda x: x.count(pathsep), reverse=True)
     # with the installer script
-    file = path.relpath(installer_name)
+    file = path.relpath(INSTALLER_TEMPLATE)
     with open(file, encoding='utf-8') as nsi:
-        old = nsi.read()
+        template = nsi.read()
     # Update the version
-    new = re.sub(r'(?<=!define DOCAL_VERSION ")[\d.]*?(?=")', VERSION, old)
-    commands = '\n'.join(file_commands + dir_commands).replace('\\', r'\\')
-    new = re.sub(r'(?ms)(?<=<INSTALLEDFILES>\n).*?(?= *; </INSTALLEDFILES>)', commands, new)
-    with open(file, 'w', encoding='utf-8') as nsi:
-        nsi.write(new)
-    run(['D:\\DevPrograms\\NSIS\\makensis.exe', installer_name])
+    installer = template.replace('$[VERSION]', VERSION).replace('$[DIR]', DIR)
+    commands = '\n'.join(file_commands + dir_commands)
+    installer = installer.replace('$[UNINSTALL_DELETES]', commands)
+    installer_file = 'installer.nsi'
+    with open(installer_file, 'w', encoding='utf-8') as nsi:
+        nsi.write(installer)
+    run(['D:\\DevPrograms\\NSIS\\makensis.exe', installer_file])
 
 
 def build_zip():
@@ -63,7 +64,6 @@ def build_zip():
 
 # TASKS:
 # -----------
-# build()
-# copy_assets()
+build()
 build_zip()
-# create_installer()
+create_installer()
