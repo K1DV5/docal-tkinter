@@ -26,14 +26,27 @@ class Sidebar(Frame):
         self.send_btn.grid(sticky='ew', padx='.25cm')
 
     def prepare(self, clear=False):
-        ext = path.splitext(self.infile.get())[1]
-        if ext == '.docx':
-            handler = word.handler
-        elif ext == '.tex':
-            handler = latex.handler
+        infile = self.infile.get()
+        outfile = self.outfile.get()
+        if infile.strip():
+            ext = path.splitext(infile)[1]
+            if ext == '.docx':
+                handler = word.handler
+            elif ext == '.tex':
+                handler = latex.handler
+            else:
+                return False
+        elif outfile.strip():
+            ext = path.splitext(outfile)[1]
+            if ext == '.docx':
+                handler = word.handler
+            elif ext == '.tex':
+                handler = latex.handler
+            else:
+                return False
         else:
             return False
-        doc = document(self.infile.get(), self.outfile.get(), handler=handler, to_clear=clear)
+        doc = document(infile, outfile, handler=handler, to_clear=clear)
         return doc
 
     def clear_calcs(self):
