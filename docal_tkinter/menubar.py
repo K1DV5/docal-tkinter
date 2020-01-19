@@ -91,15 +91,21 @@ class FileMenu(Menu):
             self.save_as()
 
     def get_data(self):
-        steps = [step.input.get() for step in self.worksheet.frame.grid_slaves()]
-        steps.reverse()
+        '''get the data displayed'''
+        # use neighbour method to preserve the order
+        first_step = self.worksheet.frame.grid_slaves(row=0, column=0)[0]
+        step_data = [first_step.input.get()]
+        next_step = first_step.neighbour(1)
+        while next_step:
+            step_data.append(next_step.input.get())
+            next_step = next_step.neighbour(1)
         data = {
             'infile': self.sidebar.infile.get(),
             'outfile': self.sidebar.outfile.get(),
             'data': [
                 {
                     'type': 'ascii',
-                    'data': steps
+                    'data': step_data
                 }
             ]
         }
