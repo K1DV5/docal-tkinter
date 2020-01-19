@@ -1,6 +1,7 @@
 # -{cd .. | python -m docal_tkinter}
 from tkinter import Menu, filedialog, messagebox
 from json import dump, loads, dumps
+from os import path
 
 class Menubar(Menu):
     def __init__(self, master):
@@ -60,20 +61,27 @@ class FileMenu(Menu):
     def open(self):
         if not self.new():
             return
-        filename = filedialog.askopenfilename(filetypes=self.filetypes, defaultextension='.dcl')
+        filename = filedialog.askopenfilename(filetypes=self.filetypes)
         if not filename:
             return
         with open(filename) as file:
             self.current_file_contents = file.read()
-        data = loads(self.current_file_contents)
+        ext = path.splitext(filename)[1]
         self.worksheet.frame.grid_slaves()[0].destroy()
-        for step in data['data'][0]['data']:
-            wid = self.worksheet.add(None)
-            wid.input.insert(0, step)
-            wid.render()
-        self.sidebar.infile.set(data['infile'])
-        self.sidebar.outfile.set(data['outfile'])
-        self.master.master.change_filename(filename)
+        if ext == '.dcl':
+            data = loads(self.current_file_contents)
+            for step in data['data'][0]['data']:
+                wid = self.worksheet.add(0)  # as editable (not new)
+                wid.input.insert(0, step)
+            self.worksheet.update_below(None)
+            self.sidebar.infile.set(data['infile'])
+            self.sidebar.outfile.set(data['outfile'])
+            self.master.master.change_filename(filename)
+        elif ext == '.py':
+            for step in self.current_file_contents.split('\n'):
+                wid = self.worksheet.add(None)
+                wid.input.insert(0, step.strip())
+            # self.worksheet.update_below(None)
 
     def save(self):
         if self.master.master.file_selected:
