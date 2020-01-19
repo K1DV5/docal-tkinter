@@ -64,7 +64,9 @@ class Worksheet(Frame):
         self.bind_all('<Control-z>', self.undo)
         self.bind_all('<Control-y>', self.redo)
 
-        self.update_above(self.add(None))
+        first = self.add(None)
+        first.is_new = False
+        self.update_above(first)  # to include the math functions
 
     def scrolled_frame(self):
         '''make a frame with a scrollbar and that can be scrolled with mouse'''
@@ -92,9 +94,14 @@ class Worksheet(Frame):
                                                       'units'))
         return frame, canvas
 
-    def add(self, event):
+    def add(self, next_to):
         step = Step(self.frame, self)
-        step.grid(sticky='ew')
+        if next_to:
+            step.grid(row=next_to.grid_info()['row'] + 1, column=0, sticky='ew')
+            self.add_history('add', step, next_to)
+        else:
+            step.grid(sticky='ew')
+        step.edit(None)
         return step
 
     def update_above(self, step):
@@ -127,18 +134,14 @@ class Worksheet(Frame):
         if self.i_history != 'head':  # delete the old branch
             to_purge = self.history[self.i_history:]
             for event in to_purge:
-                event[1].destroy()
+                if event[0] == 'add':
+                    event[1].destroy()   # it will never be added again
             self.history = self.history[:self.i_history]
             self.i_history = 'head'
-        if action == 'add':
-            self.history.append(['+', step])
-        elif action == 'edit':
-            last_data = step.current_str
-            self.history.append(['/', step, additional])
-        elif action == 'delete':
-            self.history.append(['-', step])
+        self.history.append([action, step, additional])
 
     def undo(self, event):
+        self.autocomplete.place_forget()  # stays visible sometimes
         len_history = len(self.history)
         i_history = len_history if self.i_history == 'head' else self.i_history
         if not len_history or i_history == 0:
@@ -146,59 +149,63 @@ class Worksheet(Frame):
             return
         self.i_history = i_history - 1
         last = self.history[self.i_history]
-        if last[0] == '+':
+        if last[0] == 'add':
             last[1].grid_remove()
-        elif last[0] == '-':
+            last[2].edit(None)
+        elif last[0] == 'delete':
+            last[2].render()
             self.recover(last[1])
-        elif last[0] == '/':
-            current = self.change_text(last[1], last[2])
-            # for redo
-            last[2] = current
+            self.change_text(last[1], last[1].current_str)
+            last[1].edit(None)
+        elif last[0] == 'edit':
+            # swap for redo
+            last[2] = self.change_text(last[1], last[2])
+            if last[1].grid_info()['row'] == 0:
+                return
+            last[1].render()
+            self.update_below(last[1])
 
     def redo(self, event):
+        self.autocomplete.place_forget()  # stays visible sometimes
         if self.i_history == 'head':
             self.bell()
             return
         recent = self.history[self.i_history]
-        if recent[0] == '+':
+        if recent[0] == 'add':
+            recent[2].render()
             self.recover(recent[1])
-        elif recent[0] == '-':
+        elif recent[0] == 'delete':
             recent[1].grid_remove()
-        elif recent[0] == '/':
-            current = self.change_text(recent[1], recent[2])
+            recent[2].edit(None)
+        elif recent[0] == 'edit':
             # for undo
-            recent[2] = current
+            recent[2] = self.change_text(recent[1], recent[2])
+            if recent[1].grid_info()['row'] != 0:
+                recent[1].render()
+                self.update_below(recent[1])
         else:
             return
         self.i_history += 1
         if self.i_history == len(self.history):
             self.i_history = 'head'
 
-    def remove(self, step):
+    def remove(self, step, neighbour):
         '''take the step to the graveyard'''
-        self.add_history('delete', step)
-        next_step = step.neighbour(1)
-        if next_step:
-            self.update_above(next_step)
-        else:
-            self.update_above(step)
+        self.add_history('delete', step, neighbour)
+        self.update_above(neighbour)
         step.grid_remove()  # to remember the grid data
 
     def recover(self, step):
         '''bring back removed steps from the dead'''
         step.grid()  # reuse grid data
-        step.input.delete(0, 'end')
-        step.input.insert(0, step.current_str)
         self.update_above(step)
-        step.render()
+        step.edit(None)
 
     def change_text(self, step, text):
         '''replace the input text in step with text'''
         current_txt = step.input.get()
         step.input.delete(0, 'end')
         step.input.insert(0, text)
-        step.render()
-        self.update_below(step)
         return current_txt
 
 
@@ -306,8 +313,6 @@ class Step(Frame):
 
         try:
             returned = augment_output(self.master.process(input_str), input_str)
-            if not show:  # only update the data
-                return True
         except Exception as exc:
             self.edit(None)
             message = exc.args[0]
@@ -317,30 +322,32 @@ class Step(Frame):
             return False
         else:
             self.exception.grid_remove()
+        if not show:  # only update the data
+            return True
         kind, content = returned[0][1][0], returned[0][1][1]
         self.change_displayed(kind)
         self.__getattribute__('render_' + kind)(content)
         return True
 
     def on_return(self, event):
-        last_str = self.current_str
+        last_str = self.current_str  # before changing, for undo
         if not self.render():
             return
         # save to history, for undo
         if self.is_new:
-            self.master.add_history('add', self)
             self.is_new = False
-        else:
-            self.master.add_history('edit', self, last_str)
-        next_step = self.neighbour(1)
-        if next_step:  # means in the middle, update below
-            self.master.update_below(self)
-            if next_step.input.winfo_ismapped():
-                next_step.input.focus()
-            elif not next_step.input.get().strip():
-                next_step.edit(None)
+            self.master.add(self)
             return
-        self.master.add(event)
+        self.master.add_history('edit', self, last_str)
+        next_step = self.neighbour(1)
+        if not next_step:  # means last
+            self.master.add(self)
+            return
+        self.master.update_below(self)
+        if next_step.input.winfo_ismapped():
+            next_step.input.focus()
+        elif not next_step.input.get().strip():
+            next_step.edit(None)
 
     def remove_err_msg(self, event):
         self.exception.grid_remove()
@@ -381,6 +388,7 @@ class Step(Frame):
         else:
             return
         if not neighbour:
+            self.bell()
             return
         neighbour.edit(None)
         if event.keysym == 'BackSpace':
@@ -388,7 +396,7 @@ class Step(Frame):
         current_content = self.input.get()
         neighbour.input.insert(insert_pos, current_content)
         neighbour.input.icursor(cursor_idx)
-        self.master.remove(self)
+        self.master.remove(self, neighbour)
 
     def split(self, event):
         current_content = self.input.get()
@@ -404,13 +412,9 @@ class Step(Frame):
                     step.grid_forget()
                     step.grid(row=row+1, sticky='ew')
 
-        new = self.master.add(None)
-        new.grid_forget()
-        new.grid(row=this_row + 1, sticky='ew')
+        new = self.master.add(self)
         new.input.insert(0, current_content[i_cursor:])
         new.input.icursor(0)
-        # to undo stack
-        self.master.add_history('add', new)
 
     def neighbour(self, direction=0):
         n_row = self.grid_info()['row']
@@ -543,9 +547,9 @@ class Autocomplete(Listbox):
                     item += '=' + str(value)
                     if key + UNIT_PF in space:  # has unit
                         item += to_math(space[key + UNIT_PF],
-                                        div='/', syntax=syntax_txt(),
-                                        ital=False
-                                        )
+                                        div='/',
+                                        syntax=syntax_txt(),
+                                        ital=False)
                 elif isinstance(value, list):
                     item += '=[matrix]'
                 elif callable(value):
