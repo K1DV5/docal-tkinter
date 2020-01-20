@@ -527,6 +527,8 @@ class Autocomplete(Listbox):
             if key.startswith(trigger) and not key.endswith(UNIT_PF):
                 item = key
                 value = space[key]
+                if isinstance(value, float):
+                    value = round(value, 5)
                 if isinstance(value, (int, float)):
                     item += '=' + str(value)
                     if key + UNIT_PF in space:  # has unit

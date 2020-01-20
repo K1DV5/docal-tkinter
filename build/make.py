@@ -24,6 +24,7 @@ def build():
     if run(args).returncode == 0:
         move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
         copy(ICON, path.join(DIR, path.basename(ICON)))
+    print('Compiled')
 
 def create_installer():
     '''update the version and the files in the installer'''
@@ -51,6 +52,7 @@ def create_installer():
     with open(installer_file, 'w', encoding='utf-8') as nsi:
         nsi.write(installer)
     run(['D:\\DevPrograms\\NSIS\\makensis.exe', installer_file])
+    print('Installer built')
 
 
 def build_zip():
@@ -61,6 +63,7 @@ def build_zip():
     with zf.ZipFile(f'{NAME}-{VERSION}-portable.zip', 'w', compression=zf.ZIP_DEFLATED) as package:
         for file in file_paths:
             package.write(file, file.replace(DIR, NAME))
+    print('Portable archive built')
 
 # TASKS:
 # -----------
