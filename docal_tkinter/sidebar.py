@@ -108,19 +108,30 @@ class InfileArea(Labelframe):
     def __init__(self, master):
         super().__init__(master, text='Input document', borderwidth='.25cm')
 
-        self.entry = Entry(self, width=30, textvariable=self.master.infile)
+        self.entry = Entry(self, width=30, textvariable=master.infile)
         self.select_btn = Button(self, text='Select...', command=self.select_infile)
         self.clear_btn = Button(self, text='Clear', width=6, command=self.master.clear_calcs)
-        self.open_btn = Button(self, text='Open', width=6, command=lambda: self.master.open_file('in'))
+        open_btn = Button(self, text='Open', width=6, command=lambda: self.master.open_file('in'))
         self.entry.grid(row=0, column=0, columnspan=5, sticky='nsew')
-        self.select_btn.grid(row=1, column=0, columnspan=3, sticky='ew')
-        self.clear_btn.grid(row=1, column=3, sticky='ew')
-        self.open_btn.grid(row=1, column=4, sticky='ew')
+        self.select_btn.grid(row=1, column=0, columnspan=4, sticky='ew')
+        open_btn.grid(row=1, column=4, sticky='ew')
+
+    def toggle_clear_btn(self, show=False):
+        if show:
+            self.select_btn.grid_configure(columnspan=3)
+            self.clear_btn.grid(row=1, column=3, sticky='ew')
+        else:
+            self.clear_btn.grid_remove()
+            self.select_btn.grid_configure(columnspan=4)
 
     def select_infile(self):
         filename = filedialog.askopenfilename(filetypes=[('Word documents', '*.docx'), ('LaTeX documents', '*.tex')])
-        if filename:
-            self.master.set_entry_text('in', filename)
+        if not filename: return
+        if path.splitext(filename)[1] == '.tex':
+            self.toggle_clear_btn(True)
+        else:
+            self.toggle_clear_btn(False)
+        self.master.set_entry_text('in', filename)
 
 class OutfileArea(Labelframe):
     def __init__(self, master):
