@@ -78,7 +78,7 @@ class Sidebar(Frame):
             message = ''
             if doc.log:
                 message = '\n'.join(doc.log) + '\n\n'
-            yes = messagebox.askokcancel(
+            yes = messagebox.askyesno(
                 'Success', message + 
                 'Sent successfully. Do you want to open the output document?')
             if not yes: return
