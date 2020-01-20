@@ -76,7 +76,11 @@ class Sidebar(Frame):
             message = ''
             if doc.log:
                 message = '\n'.join(doc.log) + '\n\n'
-            messagebox.showinfo('Success', message + 'Sent successfully.')
+            yes = messagebox.askokcancel(
+                'Success', message + 
+                'Sent successfully. Do you want to open the output document?')
+            if not yes: return
+            self.open_file('out')
 
     def open_file(self, which):
         '''open with default viewer'''
