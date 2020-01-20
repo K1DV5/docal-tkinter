@@ -56,6 +56,8 @@ class FileMenu(Menu):
             step.destroy()
         self.worksheet.add(None)
         self.master.master.change_filename()
+        self.sidebar.infile.set('')
+        self.sidebar.outfile.set('')
         return True
 
     def open(self):
@@ -67,7 +69,7 @@ class FileMenu(Menu):
         with open(filename) as file:
             self.current_file_contents = file.read()
         ext = path.splitext(filename)[1]
-        self.worksheet.frame.grid_slaves()[0].destroy()
+        self.worksheet.frame.grid_slaves()[0].destroy()  # start from scratch
         if ext == '.dcl':
             data = loads(self.current_file_contents)
             for step in data['data'][0]['data']:

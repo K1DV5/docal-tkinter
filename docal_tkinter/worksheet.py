@@ -279,7 +279,7 @@ class Step(Frame):
             elif kind == 'inline':
                 self.output = Canvas(self)
             elif kind == 'text':
-                width = self.input.winfo_width()
+                width = self.master.winfo_width()
                 self.output = Label(self, font=self.master.text_font, wraplength=width)
             else:  # tag
                 self.output = Label(self, font=(None, 10), foreground='blue')

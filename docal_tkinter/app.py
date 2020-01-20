@@ -40,8 +40,8 @@ class App(Tk):
         if not filename:
             filename = self.default_filename
             self.file_selected = False
-            return
+        else:
+            self.file_selected = True
         self.filename = filename
         self.title(filename + ' - docal')
-        self.file_selected = True
 
