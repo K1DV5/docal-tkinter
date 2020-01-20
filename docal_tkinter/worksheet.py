@@ -334,12 +334,13 @@ class Step(Frame):
         if not self.render():
             return
         next_step = self.neighbour(1)
+        if self.is_new:
+            self.is_new = False
+        else:
+            self.master.add_history('edit', self, last_str) # for undo
         if not next_step:  # means last
             self.master.add(self)
             return
-        if self.is_new:
-            self.is_new = False
-        self.master.add_history('edit', self, last_str) # for undo
         self.master.update_below(self)
         if next_step.input.winfo_ismapped():
             next_step.input.focus()
@@ -531,7 +532,7 @@ class Autocomplete(Listbox):
                     if key + UNIT_PF in space:  # has unit
                         item += to_math(space[key + UNIT_PF],
                                         div='/',
-                                        syntax=syntax_txt(),
+                                        syntax=UnitSyntax(),
                                         ital=False)
                 elif isinstance(value, list):
                     item += '=[mat]'
@@ -566,7 +567,7 @@ class Autocomplete(Listbox):
         self.len = self.size()
 
 
-class syntax_txt:
+class UnitSyntax:
     '''for units on completion'''
     halfsp = ''
     greek_letters = math_accents = primes = transformed = []

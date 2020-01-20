@@ -1,6 +1,8 @@
 # -{cd .. | python -m docal_tkinter}
-from tkinter import Menu, filedialog, messagebox
+from tkinter import Menu, filedialog, messagebox, Toplevel
 from json import dump, loads, dumps
+from docal.parsers.excel import parse as parse_xl
+from docal.parsers.dcl import to_py
 from os import path
 
 class Menubar(Menu):
@@ -27,9 +29,8 @@ class FileMenu(Menu):
         self.add_command(label='Exit', command=self.exit)
 
         self.filetypes = [
-            ('docal file', '*dcl'),
-            ('Python file', '*py'),
-            ('Excel worksheet', '*.xlsx'),
+            ('docal file', '*.dcl'),
+            ('Python file', '*.py'),
         ]
 
         self.worksheet = self.master.master.worksheet
@@ -61,34 +62,34 @@ class FileMenu(Menu):
         return True
 
     def open(self):
-        if not self.new():
-            return
         filename = filedialog.askopenfilename(filetypes=self.filetypes)
-        if not filename:
-            return
-        with open(filename) as file:
-            self.current_file_contents = file.read()
+        if not filename: return
+        if not self.new(): return
         ext = path.splitext(filename)[1]
         self.worksheet.frame.grid_slaves()[0].destroy()  # start from scratch
+        with open(filename) as file:
+            in_file = file.read()
         if ext == '.dcl':
-            data = loads(self.current_file_contents)
-            for step in data['data'][0]['data']:
-                wid = self.worksheet.add(0)  # as editable (not new)
-                wid.input.insert(0, step)
-            self.worksheet.update_below(None)
+            data = loads(in_file)
+            steps = data['data'][0]['data']
             self.sidebar.infile.set(data['infile'])
             self.sidebar.outfile.set(data['outfile'])
-            self.master.master.change_filename(filename)
         elif ext == '.py':
-            for step in self.current_file_contents.split('\n'):
-                wid = self.worksheet.add(None)
-                wid.input.insert(0, step.strip())
-            # self.worksheet.update_below(None)
+            steps = in_file.split('\n')
+        else:
+            messagebox.showerror('Error', 'File type not supported')
+            return
+        self.master.master.change_filename(filename)
+        for step in steps:
+            wid = self.worksheet.add(0)  # as editable (not new)
+            wid.input.insert(0, step)
+        self.worksheet.update_below(None)
+        self.current_file_contents = str(self.get_data())
 
     def save(self):
+        self.worksheet.update_below(None) # try to render all
         if self.master.master.file_selected:
-            with open(self.master.master.filename, 'w', encoding='utf-8') as file:
-                dump(self.get_data(), file, ensure_ascii=False)
+            self.save_as(False)
         else:
             self.save_as()
 
@@ -108,17 +109,28 @@ class FileMenu(Menu):
         }
         return data
 
-    def save_as(self):
-        filename = filedialog.asksaveasfilename(filetypes=self.filetypes[:-1],
-                                                defaultextension='.dcl',
-                                                initialfile=self.master.master.default_filename
-                                                )
-        if not filename:  # cancelled
+    def save_as(self, dialog=True):
+        if dialog:
+            filename = filedialog.asksaveasfilename(
+                filetypes=self.filetypes,
+                initialfile=self.master.master.default_filename,
+                defaultextension='.dcl',
+            )
+            if not filename:  # cancelled
+                return
+        else:
+            filename = self.master.master.filename
+        ext = path.splitext(filename)[1]
+        data = self.get_data()
+        if ext not in ('.dcl', '.py'):
+            messagebox.showerror('Error', 'File type not supported')
             return
-        self.current_file_contents = self.get_data()
         with open(filename, 'w', encoding='utf-8') as file:
-            dump(self.current_file_contents, file, ensure_ascii=False)
-        self.current_file_contents = str(self.current_file_contents)
+            if ext == '.dcl':
+                dump(data, file, ensure_ascii=False)
+            elif ext == '.py':
+                file.write('\n'.join([to_py(line) for line in data['data'][0]['data']]))
+        self.current_file_contents = str(data)
         self.master.master.change_filename(filename)
 
     def exit(self):
@@ -129,6 +141,7 @@ class FileMenu(Menu):
             elif response is None:
                 return
         self.master.master.quit()
+
 
 class EditMenu(Menu):
     def __init__(self, master):
