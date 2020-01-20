@@ -92,20 +92,15 @@ class FileMenu(Menu):
 
     def get_data(self):
         '''get the data displayed'''
-        # use neighbour method to preserve the order
-        first_step = self.worksheet.frame.grid_slaves(row=0, column=0)[0]
-        step_data = [first_step.input.get()]
-        next_step = first_step.neighbour(1)
-        while next_step:
-            step_data.append(next_step.input.get())
-            next_step = next_step.neighbour(1)
+        steps = self.worksheet.frame.grid_slaves(column=0)
+        steps.sort(key=lambda s: s.grid_info()['row'])  # preserve grid order
         data = {
             'infile': self.sidebar.infile.get(),
             'outfile': self.sidebar.outfile.get(),
             'data': [
                 {
                     'type': 'ascii',
-                    'data': step_data
+                    'data': [step.current_str for step in steps]
                 }
             ]
         }

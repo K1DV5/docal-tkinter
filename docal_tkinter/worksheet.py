@@ -112,26 +112,22 @@ class Worksheet(Frame):
         self.process('from math import *')  # scientific math funcs
         this_row = step.grid_info()['row']
         steps = self.frame.grid_slaves()
-        if not steps:
-            return
-        i = len(steps) - 1
-        while i > -1:
-            if steps[i].grid_info()['row'] == this_row:
+        if not steps: return
+        steps.sort(key=lambda s: s.grid_info()['row'])  # preserve grid order
+        for step in steps:
+            if step.grid_info()['row'] == this_row:
                 break
-            steps[i].render(False)  # only update the values
-            i -= 1
+            step.render(False)  # only update the values
 
     def update_below(self, step):
         steps = self.frame.grid_slaves()
-        if not steps:
-            return
+        if not steps: return
+        steps.sort(key=lambda s: s.grid_info()['row'])  # preserve grid order
         this_row = step.grid_info()['row'] if step else -1
-        i = len(steps) - 1
-        while i > -1:
-            row = steps[i].grid_info()['row']
+        for step in steps:
+            row = step.grid_info()['row']
             if row > this_row:
-                steps[i].render()
-            i -= 1
+                step.render()
 
     def add_history(self, action, step, additional=None):
         if self.i_history != 'head':  # delete the old branch
