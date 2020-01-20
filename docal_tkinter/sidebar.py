@@ -25,7 +25,7 @@ class Sidebar(Frame):
         self.send_btn = Button(self, text='Send', command=self.send_calcs)
         self.send_btn.grid(sticky='ew', padx='.25cm')
 
-    def prepare(self, clear=False):
+    def prepare(self):
         infile = self.infile.get()
         outfile = self.outfile.get()
         if infile.strip():
@@ -46,15 +46,17 @@ class Sidebar(Frame):
                 return False
         else:
             return False
-        doc = document(infile, outfile, handler=handler, to_clear=clear)
+        doc = document(infile, outfile, handler=handler)
         return doc
 
     def clear_calcs(self):
         ext = path.splitext(self.infile.get())[1]
         if ext != '.tex':
-            self.bell()
+            messagebox.showinfo(
+                'Not supported',
+                'The file type does not support clearing tags in place')
             return
-        doc = self.prepare(True)
+        doc = self.prepare()
         doc.write()
         messagebox.showinfo('Success', 'Cleared.')
 

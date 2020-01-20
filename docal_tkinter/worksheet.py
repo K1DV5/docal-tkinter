@@ -27,7 +27,7 @@ def augment_output(output, input_str):
 # just to get the process method from document
 class handler:
     syntax = syntax()
-    def __init__(self, infile, pattern, to_clear):
+    def __init__(self, infile, pattern):
         self.tags = []
         pass
     def write(self, outfile, values):
