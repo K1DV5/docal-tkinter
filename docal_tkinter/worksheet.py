@@ -289,16 +289,13 @@ class Step(Frame):
 
     def render_disp(self, math):
         self.output.delete('all')
-        cwidth = math.size[0]*1.2
-        cheight = math.size[1]*1.2
-        math.coords = (math.size[0]*0.1, math.size[1]*0.1)
-
-        self.output.config(width=cwidth, height=cheight)
+        math.y = 5
+        self.output.config(width=math.width, height=math.height + 10)
         math.render(self.output)
 
     def render_inline(self, math):
         self.output.delete('all')
-        self.output.config(width=math.size[0], height=math.size[1])
+        self.output.config(width=math.width, height=math.height)
         math.render(self.output)
 
     def render_text(self, text):
