@@ -34,7 +34,7 @@ class App(Tk):
 
         self.config(menu=self.menu)
 
-        self.protocol('WM_DELETE_WINDOW', self.menu.file_menu.quit)
+        self.protocol('WM_DELETE_WINDOW', self.menu.file_menu.exit)
 
     def change_filename(self, filename=None):
         if not filename:
