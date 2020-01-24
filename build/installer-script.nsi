@@ -10,6 +10,10 @@
   !include "MUI2.nsh"
 
 ;--------------------------------
+
+; https://nsis.sourceforge.io/File_Association
+!include "FileAssociation.nsh"  ; for file association
+
 ;General
 
   !define DOCAL_VERSION $[VERSION] ; to be replaced by make script
@@ -118,6 +122,8 @@ Section "" ; Installer section
   ;Write registry keys for uninstalling from the control panel
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\docal" "DisplayName" "docal"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\docal" "UninstallString" "$INSTDIR\Uninstall.exe"
+  ; associate .dcl files
+  ${registerExtension} "$INSTDIR\docal.exe" ".dcl" "docal calculation"
 
 SectionEnd
 
@@ -143,5 +149,7 @@ Section "Uninstall"
   DeleteRegKey /ifempty HKCU "Software\docal"
   DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\docal"
   DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\docal"
+  ; disassociate .dcl files
+  ${unregisterExtension} ".dcl" "docal calculation"
 
 SectionEnd
