@@ -61,10 +61,11 @@ class FileMenu(Menu):
         self.sidebar.outfile.set('')
         return True
 
-    def open(self):
-        filename = filedialog.askopenfilename(filetypes=self.filetypes)
-        if not filename: return
-        if not self.new(): return
+    def open(self, filename=None):
+        if not filename:
+            filename = filedialog.askopenfilename(filetypes=self.filetypes)
+            if not filename: return
+            if not self.new(): return
         ext = path.splitext(filename)[1]
         self.worksheet.frame.grid_slaves()[0].destroy()  # start from scratch
         with open(filename) as file:
