@@ -289,8 +289,8 @@ class Step(Frame):
 
     def render_disp(self, math):
         self.output.delete('all')
-        math.y = 5
-        self.output.config(width=math.width, height=math.height + 10)
+        math.y = math.x = 5
+        self.output.config(width=math.width + 10, height=math.height + 10)
         math.render(self.output)
 
     def render_inline(self, math):
