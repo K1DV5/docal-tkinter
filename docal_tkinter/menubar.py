@@ -1,5 +1,5 @@
 # -{cd .. | python -m docal_tkinter}
-from tkinter import Menu, filedialog, messagebox, Toplevel
+from tkinter import Menu, filedialog, messagebox, Toplevel, Label
 from json import dump, loads, dumps
 from docal.parsers.excel import parse as parse_xl
 from docal.parsers.dcl import to_py
@@ -190,7 +190,19 @@ class HelpMenu(Menu):
         self.add_command(label='About', command=self.about)
 
     def help(self):
-        print('help')
+        messagebox.showinfo('Quick help', '\u2022 To write text, start with a space.\n\u2022 To write calculations, just type them.\n\u2022 To write equations, start with $$ or $.\n\u2022 To specify a location, write a #hashtag.\n\u2022 To refer to a variable inside a text, precede it with a hash like #T.')
 
     def about(self):
-        messagebox.showinfo('About', 'docal\n\n2.2.1\n\n2020')
+        win = Toplevel()
+        win.title('About')
+        Label(win, text='docal', font=(None, 24)).grid(sticky='w')
+        Label(win, text='Version 2.2.1').grid(sticky='w')
+        Label(win, text='\nProject URLs').grid(sticky='w')
+        Label(win, text='http://github.com/K1DV5/docal', fg='blue').grid(sticky='w')
+        Label(win, text=' (Core project)').grid(row=3, column=1, sticky='w')
+        Label(win, text='http://github.com/K1DV5/docal-tkinter', fg='blue').grid(sticky='w')
+        Label(win, text=' (UI project)').grid(row=4, column=1, sticky='w')
+        Label(win, text='http://github.com/K1DV5/tkinter-math', fg='blue').grid(sticky='w')
+        Label(win, text=' (Math renderer project, for the UI)').grid(row=5, column=1, sticky='w')
+        win.protocol('WM_DELETE_WINDOW', lambda: win.destroy())
+        win.mainloop()

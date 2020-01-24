@@ -54,7 +54,7 @@
   ;License page
   !define MUI_LICENSEPAGE_TEXT_TOP "Please review the license for the software."
   !define MUI_LICENSEPAGE_CHECKBOX
-    !define MUI_LICENSEPAGE_CHECKBOX_TEXT "I agree with the terms and conditions of stated."
+    !define MUI_LICENSEPAGE_CHECKBOX_TEXT "I agree with the terms and conditions stated."
   !insertmacro MUI_PAGE_LICENSE "../LICENSE"
 
   ;Directory page
