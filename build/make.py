@@ -1,7 +1,7 @@
 from subprocess import run
 from glob import glob
 from os import walk, path, sep as pathsep
-from shutil import copy, move
+from shutil import copy, move, rmtree
 import pkg_resources
 import zipfile as zf
 import re
@@ -17,13 +17,26 @@ def build():
     args = ['python', '-m', 'nuitka',
             '--standalone',
             '--plugin-enable=tk-inter',
-            '--windows-icon=../docal.ico',
+            '--windows-icon=' + path.abspath(ICON),
             '--windows-disable-console',
-            # '--windows-dependency-tool=pefile',
+            # '--experimental=use_pefile',
+            # '--experimental=use_pefile_recurse',
+            '--windows-dependency-tool=pefile',
+            '--recurse-all',
             '../docal_tkinter']
-    if run(args).returncode == 0:
-        move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
-        copy(ICON, path.join(DIR, path.basename(ICON)))
+    if run(args).returncode != 0:
+        print('error')
+        exit(1)
+    move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
+    copy(ICON, path.join(DIR, path.basename(ICON)))
+    # unnecessary regional things
+    rmtree(path.join(DIR, 'tcl', 'encoding'))
+    rmtree(path.join(DIR, 'tcl', 'http1.0'))
+    rmtree(path.join(DIR, 'tcl', 'tzdata'))
+    rmtree(path.join(DIR, 'tcl', 'opt0.4'))
+    rmtree(path.join(DIR, 'tcl', 'msgs'))
+    rmtree(path.join(DIR, 'tk', 'msgs'))
+    rmtree(path.join(DIR, 'tk', 'images'))
     print('Compiled')
 
 def create_installer():
