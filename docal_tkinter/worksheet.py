@@ -299,7 +299,7 @@ class Step(Frame):
         math.render(self.output)
 
     def render_text(self, text):
-        self.output.config(text=text)
+        self.output.config(text=text, wraplength=self.master.winfo_width())
 
     def render_tag(self, tag):
         self.output.config(text=tag)
@@ -330,11 +330,11 @@ class Step(Frame):
         last_str = self.current_str  # before changing, for undo
         if not self.render():
             return
-        next_step = self.neighbour(1)
         if self.is_new:
             self.is_new = False
         else:
             self.master.add_history('edit', self, last_str) # for undo
+        next_step = self.neighbour(1)
         if not next_step:  # means last
             self.master.add(self)
             return

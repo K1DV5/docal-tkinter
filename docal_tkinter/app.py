@@ -12,7 +12,6 @@ class App(Tk):
         super().__init__()
 
         self.minsize(600, 470)
-        self.after_idle(self.iconbitmap, path.abspath('./docal.ico'))
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -34,6 +33,8 @@ class App(Tk):
 
         self.config(menu=self.menu)
 
+        # set the icon
+        self.after_idle(self.iconbitmap, path.abspath('./docal.ico'))
         self.protocol('WM_DELETE_WINDOW', self.menu.file_menu.exit)
 
     def change_filename(self, filename=None):
