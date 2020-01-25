@@ -15,15 +15,28 @@ class Sidebar(Frame):
         self.outfile = StringVar(self)
 
         # infile area
-        self.infile_area = InfileArea(self)
-        self.infile_area.grid(sticky='ew')
+        self.infile_area = self.infile_area()
+        self.infile_area.grid(sticky='ew', columnspan=2)
 
         # outfile area
-        self.outfile_area = OutfileArea(self)
-        self.outfile_area.grid(sticky='ew', pady=20)
+        self.outfile_area = self.outfile_area()
+        self.outfile_area.grid(sticky='ew', pady=20, columnspan=2)
 
         self.send_btn = Button(self, text='Send', command=self.send_calcs)
-        self.send_btn.grid(sticky='ew', padx='.25cm')
+        self.send_btn.grid(sticky='ew', padx='.25cm', columnspan=2)
+        self.clear_btn = Button(self, text='Clear', width=6, command=self.clear_calcs)
+        self.clear_btn.grid(sticky='ew', padx='.25cm', row=2, column=1)
+        self.clear_btn.grid_remove()  # normally hidden because mostly 4 .docx
+
+        self.grid_columnconfigure(0, weight=1)
+
+    def toggle_clear_btn(self, show=False):
+        if show:
+            self.send_btn.grid_configure(columnspan=1)
+            self.clear_btn.grid()
+        else:
+            self.clear_btn.grid_remove()
+            self.send_btn.grid_configure(columnspan=2)
 
     def prepare(self):
         infile = self.infile.get()
@@ -89,40 +102,25 @@ class Sidebar(Frame):
         if which == 'in':
             if not self.infile.get():
                 return
-            startfile(self.infile.get())
-            return
-        if not self.outfile.get():
-            return
-        startfile(self.outfile.get())
-
-    def set_entry_text(self, entry, text):
-        if entry == 'in':
-            entry = self.infile_area.entry
+            filename = self.infile.get()
         else:
-            entry = self.outfile_area.entry
-        entry.delete(0, 'end')
-        entry.insert(0, text)
-        entry.xview_moveto(10)
+            if not self.outfile.get():
+                return
+            filename = self.outfile.get()
+        try:
+            startfile(filename)
+        except OSError as err:
+            messagebox.showerror('Error', err.args[1])
 
-class InfileArea(Labelframe):
-    def __init__(self, master):
-        super().__init__(master, text='Input document', borderwidth='.25cm')
-
-        self.entry = Entry(self, width=30, textvariable=master.infile)
-        self.select_btn = Button(self, text='Select...', command=self.select_infile)
-        self.clear_btn = Button(self, text='Clear', width=6, command=self.master.clear_calcs)
-        open_btn = Button(self, text='Open', width=6, command=lambda: self.master.open_file('in'))
-        self.entry.grid(row=0, column=0, columnspan=5, sticky='nsew')
-        self.select_btn.grid(row=1, column=0, columnspan=4, sticky='ew')
+    def infile_area(self):
+        area = Labelframe(self, text='Input document', borderwidth='.25cm')
+        entry = Entry(area, width=30, textvariable=self.infile)
+        select_btn = Button(area, text='Select...', command=self.select_infile)
+        open_btn = Button(area, text='Open', width=6, command=lambda: self.open_file('in'))
+        entry.grid(row=0, column=0, columnspan=5, sticky='nsew')
+        select_btn.grid(row=1, column=0, columnspan=4, sticky='ew')
         open_btn.grid(row=1, column=4, sticky='ew')
-
-    def toggle_clear_btn(self, show=False):
-        if show:
-            self.select_btn.grid_configure(columnspan=3)
-            self.clear_btn.grid(row=1, column=3, sticky='ew')
-        else:
-            self.clear_btn.grid_remove()
-            self.select_btn.grid_configure(columnspan=4)
+        return area
 
     def select_infile(self):
         filename = filedialog.askopenfilename(filetypes=[('Word documents', '*.docx'), ('LaTeX documents', '*.tex')])
@@ -131,21 +129,20 @@ class InfileArea(Labelframe):
             self.toggle_clear_btn(True)
         else:
             self.toggle_clear_btn(False)
-        self.master.set_entry_text('in', filename)
+        self.infile.set(filename)
 
-class OutfileArea(Labelframe):
-    def __init__(self, master):
-        super().__init__(master, text='Output document', borderwidth='.25cm')
-
-        self.entry = Entry(self, width=30, textvariable=self.master.outfile)
-        self.select_btn = Button(self, text='Select...', command=self.select_outfile)
-        self.open_btn = Button(self, text='Open', command=lambda: self.master.open_file('out'))
-        self.entry.grid(row=0, column=0, columnspan=5, sticky='nsew')
-        self.select_btn.grid(row=1, column=0, columnspan=3, sticky='ew')
-        self.open_btn.grid(row=1, column=3, columnspan=2, sticky='ew')
+    def outfile_area(self):
+        area = Labelframe(self, text='Output document', borderwidth='.25cm')
+        entry = Entry(area, width=30, textvariable=self.outfile)
+        select_btn = Button(area, text='Select...', command=self.select_outfile)
+        open_btn = Button(area, text='Open', command=lambda: self.open_file('out'))
+        entry.grid(row=0, column=0, columnspan=5, sticky='nsew')
+        select_btn.grid(row=1, column=0, columnspan=3, sticky='ew')
+        open_btn.grid(row=1, column=3, columnspan=2, sticky='ew')
+        return area
 
     def select_outfile(self):
         filename = filedialog.asksaveasfilename(filetypes=[('Word documents', '*.docx'), ('LaTeX documents', '*.tex')])
         if filename:
-            self.master.set_entry_text('out', filename)
+            self.outfile.set(filename)
 

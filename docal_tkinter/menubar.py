@@ -177,9 +177,9 @@ class OpsMenu(Menu):
 
         self.sidebar = self.master.master.sidebar
 
-        self.add_command(label='Select input document', command=self.sidebar.infile_area.select_infile)
+        self.add_command(label='Select input document', command=self.sidebar.select_infile)
         self.add_command(label='Clear input document', command=self.sidebar.clear_calcs)
-        self.add_command(label='Select output document', command=self.sidebar.outfile_area.select_outfile)
+        self.add_command(label='Select output document', command=self.sidebar.select_outfile)
         self.add_separator()
         self.add_command(label='Send calculations', command=self.sidebar.send_calcs)
 
