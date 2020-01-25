@@ -6,6 +6,6 @@ from sys import argv
 app = App()
 
 if len(argv) > 1:
-    app.after_idle(app.menu.file_menu.open, argv[1])
+    app.after_idle(app.after, 300, app.menu.file_menu.open, argv[1])
 
 app.mainloop()
