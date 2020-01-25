@@ -102,10 +102,12 @@ class Sidebar(Frame):
         '''open with default viewer'''
         if which == 'in':
             if not self.infile.get():
+                self.bell()
                 return
             filename = self.infile.get()
         else:
             if not self.outfile.get():
+                self.bell()
                 return
             filename = self.outfile.get()
         try:
