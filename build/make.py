@@ -1,10 +1,11 @@
 from subprocess import run
 from glob import glob
-from os import walk, path, sep as pathsep
-from shutil import copy, move, rmtree
+from os import walk, path, sep as pathsep, makedirs
+from shutil import copy, move, rmtree, make_archive
 import pkg_resources
 import zipfile as zf
 import re
+from pkg_resources import resource_filename
 
 VERSION = pkg_resources.get_distribution('docal').version
 NAME = 'docal'
@@ -12,6 +13,9 @@ DIR = 'docal_tkinter.dist'
 INSTALLER_TEMPLATE = 'installer-script.nsi'
 ASSETS_DIR = path.join(DIR, 'assets')
 ICON = '../docal.ico'
+
+# template file for word
+WORD_TEMPL = resource_filename('docal', 'handlers/template.docx')
 
 def build():
     args = ['python', '-m', 'nuitka',
@@ -29,6 +33,9 @@ def build():
         exit(1)
     move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
     copy(ICON, path.join(DIR, path.basename(ICON)))
+    template_dir = path.join(DIR, 'docal', 'handlers')
+    print(makedirs(template_dir))
+    copy(WORD_TEMPL, path.join(template_dir, path.basename(WORD_TEMPL)))
     # unnecessary regional things
     rmtree(path.join(DIR, 'tcl', 'encoding'))
     rmtree(path.join(DIR, 'tcl', 'http1.0'))
@@ -73,6 +80,7 @@ def build_zip():
     for root, dirs, files in walk(DIR):
         file_paths += [path.join(root, f) for f in files]
 
+    # make_archive(path.abspath(f'{NAME}-{VERSION}-portable'), 'zip', DIR, DIR)
     with zf.ZipFile(f'{NAME}-{VERSION}-portable.zip', 'w', compression=zf.ZIP_DEFLATED) as package:
         for file in file_paths:
             package.write(file, file.replace(DIR, NAME))
