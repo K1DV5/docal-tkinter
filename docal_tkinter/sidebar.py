@@ -86,7 +86,8 @@ class Sidebar(Frame):
         except Exception as e:
             messagebox.showerror('Error', 'Internal error:\n' + str(e.args))
         else:
-            self.infile.set(doc.document_file.infile)
+            if doc.document_file.infile:
+                self.infile.set(doc.document_file.infile)
             self.outfile.set(doc.document_file.outfile)
             message = ''
             if doc.log:
