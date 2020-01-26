@@ -30,6 +30,8 @@ class Sidebar(Frame):
 
         self.grid_columnconfigure(0, weight=1)
 
+        self.doc_types = [('Word documents', '*.docx'), ('LaTeX documents', '*.tex')]
+
     def toggle_clear_btn(self, show=False):
         if show:
             self.send_btn.grid_configure(columnspan=1)
@@ -126,7 +128,7 @@ class Sidebar(Frame):
         return area
 
     def select_infile(self):
-        filename = filedialog.askopenfilename(filetypes=[('Word documents', '*.docx'), ('LaTeX documents', '*.tex')])
+        filename = filedialog.askopenfilename(filetypes=self.doc_types)
         if not filename: return
         if path.splitext(filename)[1] == '.tex':
             self.toggle_clear_btn(True)
@@ -145,7 +147,9 @@ class Sidebar(Frame):
         return area
 
     def select_outfile(self):
-        filename = filedialog.asksaveasfilename(filetypes=[('Word documents', '*.docx'), ('LaTeX documents', '*.tex')])
+        filename = filedialog.asksaveasfilename(filetypes=self.doc_types,
+                                                initialfile=self.master.default_filename,
+                                                defaultextension='.docx')
         if filename:
             self.outfile.set(filename)
 
