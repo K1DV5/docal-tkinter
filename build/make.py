@@ -28,6 +28,13 @@ def build():
             '--windows-dependency-tool=pefile',
             '--recurse-all',
             '../docal_tkinter']
+    # args = [
+    #     'pyinstaller',
+    #     '../docal_tkinter',
+    #     '-n', NAME,
+    #     '--windowed',
+    #     '--icon', ICON
+    # ]
     if run(args).returncode != 0:
         print('error')
         exit(1)
