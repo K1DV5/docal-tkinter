@@ -1,5 +1,5 @@
 # -{cd .. | python -m docal_tkinter}
-from tkinter import Tk, Menu, ttk
+from tkinter import Tk, Menu
 from .sidebar import Sidebar
 from .worksheet import Worksheet
 from .menubar import Menubar
@@ -12,8 +12,6 @@ class App(Tk):
         super().__init__()
 
         self.minsize(600, 470)
-        self.style = ttk.Style()
-        # self.style.theme_use('default')
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)

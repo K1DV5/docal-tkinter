@@ -1,5 +1,5 @@
 # -{cd .. | python -m docal_tkinter}
-from tkinter.ttk import Frame, LabelFrame, Checkbutton, Entry, Label, Button
+from tkinter.ttk import Frame, LabelFrame, Checkbutton, Entry, Label, Button, Style
 from tkinter import IntVar
 from docal.handlers.word import PRIMES, GREEK_LETTERS
 
@@ -30,6 +30,9 @@ class Toolbar(Frame):
 
         self.accents = Accents(self)
         self.accents.grid(sticky='ew', padx=10, pady=10)
+
+        self.style = Style()
+        self.style.map('TLabel', background=[('active', 'blue')])
 
 class Options(LabelFrame):
     def __init__(self, master):

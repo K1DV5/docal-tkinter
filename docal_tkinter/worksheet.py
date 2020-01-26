@@ -1,7 +1,7 @@
 # -{cd .. | python -m docal_tkinter}
 # -{cd .. | ipython --pdb -m docal_tkinter}
 import re
-from tkinter.ttk import Frame, Label, Entry, Scrollbar
+from tkinter.ttk import Frame, Label, Entry, Scrollbar, Style
 from tkinter import font, Canvas, Listbox, StringVar
 
 import sys
@@ -69,6 +69,9 @@ class Worksheet(Frame):
         first = self.add(None)
         first.is_new = False
         self.update_above(first)  # to include the math functions
+
+        self.style = Style()
+        self.style.configure('WS.TFrame', background='white')
 
     def scrolled_frame(self):
         '''make a frame with a scrollbar and that can be scrolled with mouse'''
@@ -210,7 +213,7 @@ class Worksheet(Frame):
 
 class Step(Frame):
     def __init__(self, master, grand_master):
-        super().__init__(master, takefocus=0)
+        super().__init__(master, takefocus=0, style='WS.TFrame')
         self.master = grand_master
         self.grid_columnconfigure(0, weight=1)
 
@@ -219,7 +222,7 @@ class Step(Frame):
             'kind': 'math',  # or text
             'y': 0  # not always available, to be set at scroll_into_view, for autocomplete
         }
-        self.output = Label(self, text='')
+        self.output = Label(self, text='', background='white')
         self.output_props = {
             'kind': None,  # disp or inline or text or tag
         }
@@ -268,6 +271,8 @@ class Step(Frame):
             return
         if kind == 'init':
             self.input.grid(sticky='ew')
+            self.output.grid(sticky='ew')
+            self.output.grid_remove()
             return
         # output
         self.input.grid_remove()
@@ -276,13 +281,13 @@ class Step(Frame):
             self.output.destroy()
             sticky = 'ew'
             if kind == 'disp':
-                self.output = Canvas(self)
+                self.output = Canvas(self, background='white', highlightthickness=0)
                 sticky = None
             elif kind == 'inline':
-                self.output = Canvas(self)
+                self.output = Canvas(self, bg='white', highlightthickness=0)
             elif kind == 'text':
                 width = self.master.winfo_width()
-                self.output = Label(self, font=self.master.text_font, wraplength=width)
+                self.output = Label(self, font=self.master.text_font, wraplength=width, background='white')
             else:  # tag
                 self.output = Label(self, font=(None, 8), foreground='white', background='#37F')
             self.output.bind('<1>', self.edit)
