@@ -17,6 +17,8 @@ def augment_output(output, input_str):
         return output
     if input_str.startswith('#@'): # default options
         return [(None, ('text', '[options]'))]
+    if input_str.startswith('##'):  # comments
+        return [(None, ('text', '[comment]'))]
     if input_str.strip().startswith('#'):  # means a tag
         tag = input_str.strip()
         return [(None, ('tag', tag))]
@@ -282,7 +284,7 @@ class Step(Frame):
                 width = self.master.winfo_width()
                 self.output = Label(self, font=self.master.text_font, wraplength=width)
             else:  # tag
-                self.output = Label(self, font=(None, 10), foreground='blue')
+                self.output = Label(self, font=(None, 8), foreground='white', background='#37F')
             self.output.bind('<1>', self.edit)
             self.output.grid_configure(column=0, sticky=sticky)
         self.output.grid()
@@ -409,7 +411,8 @@ class Step(Frame):
                     step.grid_configure(row=row+1)
 
         new = self.master.add(self)
-        new.input.insert(0, current_content[i_cursor:])
+        new.current_str = current_content[i_cursor:]
+        new.input.insert(0, new.current_str)
         new.input.icursor(0)
 
     def neighbour(self, direction=0):
