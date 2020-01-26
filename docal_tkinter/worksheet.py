@@ -345,8 +345,7 @@ class Step(Frame):
         if not next_step:  # means last
             self.master.add(self)
             return
-        # delay so that changes can be seen
-        self.after(300, self.master.update_below, self)
+        self.master.update_below(self)
         if next_step.input.winfo_ismapped():
             next_step.input.focus()
         elif not next_step.input.get().strip():
