@@ -191,11 +191,20 @@ class Worksheet(Frame):
         if self.i_history == len(self.history):
             self.i_history = 'head'
 
-    def remove(self, step, neighbour):
+    def remove(self, step, neighbour=None):
         '''take the step to the graveyard'''
+        if not isinstance(step, Step):  # is event
+            step = step.widget.master
+            neighbour = step.neighbour(-1)
+            if not neighbour:
+                neighbour = step.neighbour(1)
+            if not neighbour:
+                self.bell()
+                return
         self.add_history('delete', step, neighbour)
         self.update_above(neighbour)
         step.grid_remove()  # to remember the grid data
+        neighbour.edit(None)
 
     def recover(self, step):
         '''bring back removed steps from the dead'''
@@ -230,6 +239,7 @@ class Step(Frame):
 
         self.input.bind('<Return>', self.on_return)
         self.input.bind('<BackSpace>', self.merge)
+        self.input.bind('<Control-BackSpace>', self.master.remove)
         self.input.bind('<Delete>', self.merge)
         self.input.bind('<Control-Return>', self.split)
         self.input.bind('<Shift-Return>', self.split)
@@ -392,7 +402,6 @@ class Step(Frame):
         if not neighbour:
             self.bell()
             return
-        neighbour.edit(None)
         if event.keysym == 'BackSpace':
             cursor_idx = neighbour.input.index(insert_pos)
         current_content = self.input.get()
