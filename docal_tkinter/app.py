@@ -44,5 +44,5 @@ class App(Tk):
         else:
             self.file_selected = True
         self.filename = filename
-        self.title(filename + ' - docal')
+        self.title(path.basename(filename) + ' - docal')
 
