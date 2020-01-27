@@ -77,6 +77,10 @@ class Options(LabelFrame):
         insert_btn.grid(row=6, column=1, sticky='ew')
 
     def insert_options(self):
+        entry = self.master.master.worksheet.current_input
+        if not entry or not entry.winfo_ismapped():
+            self.bell()
+            return
         options = []
         unit = self.unit.get()
         if unit.strip():
@@ -96,8 +100,6 @@ class Options(LabelFrame):
         if self.v_hidden.get():
             options.append(';')
         self.clear_options()
-        entry = self.master.master.worksheet.current_input
-        if not entry: return
         current = entry.get()
         if current.strip():
             if options:
@@ -108,7 +110,9 @@ class Options(LabelFrame):
 
     def clear_options(self):
         entry = self.master.master.worksheet.current_input
-        if not entry: return
+        if not entry or not entry.winfo_ismapped():
+            self.bell()
+            return
         current = entry.get()
         i_hash = current.find('#')
         i_del = len(current[:i_hash].rstrip())
@@ -123,7 +127,7 @@ class Greek(LabelFrame):
 
     @staticmethod
     def create_table(self, data, command):
-        cols = 10
+        cols = 9
         row = col = 0
         collect = {}
         for key, val in data.items():
