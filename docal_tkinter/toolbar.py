@@ -122,8 +122,8 @@ class Options(LabelFrame):
 
 class Greek(LabelFrame):
     def __init__(self, master):
-        super().__init__(master, text='Greek letters')
-        self.data = self.create_table(self, GREEK_LETTERS, self.insert_letter)
+        super().__init__(master, text='Symbols')
+        self.data = self.create_table(self, {**GREEK_LETTERS, 'integral': '\u222B'}, self.insert_letter)
 
     @staticmethod
     def create_table(self, data, command):
