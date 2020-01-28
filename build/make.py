@@ -1,6 +1,6 @@
 from subprocess import run
 from glob import glob
-from os import walk, path, sep as pathsep, makedirs
+from os import walk, path, sep as pathsep, makedirs, remove
 from shutil import copy, move, rmtree, make_archive
 import pkg_resources
 import zipfile as zf
@@ -41,9 +41,9 @@ def build():
     move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
     copy(ICON, path.join(DIR, path.basename(ICON)))
     template_dir = path.join(DIR, 'docal', 'handlers')
-    print(makedirs(template_dir))
+    makedirs(template_dir)
     copy(WORD_TEMPL, path.join(template_dir, path.basename(WORD_TEMPL)))
-    # unnecessary regional things
+    # unnecessary data, this app works offline
     rmtree(path.join(DIR, 'tcl', 'encoding'))
     rmtree(path.join(DIR, 'tcl', 'http1.0'))
     rmtree(path.join(DIR, 'tcl', 'tzdata'))
@@ -51,6 +51,9 @@ def build():
     rmtree(path.join(DIR, 'tcl', 'msgs'))
     rmtree(path.join(DIR, 'tk', 'msgs'))
     rmtree(path.join(DIR, 'tk', 'images'))
+    remove(path.join(DIR, '_ssl.pyd'))
+    remove(path.join(DIR, 'libcrypto-1_1.dll'))
+    remove(path.join(DIR, 'libssl-1_1.dll'))
     print('Compiled')
 
 def create_installer():
@@ -96,5 +99,5 @@ def build_zip():
 # TASKS:
 # -----------
 build()
-build_zip()
+# build_zip()
 create_installer()
