@@ -266,9 +266,9 @@ class Step(Frame):
             direction = 1 if event.state == 8 else -1
             menu.select_next(direction)
             return 'break'
-        elif event.keysym in ('Shift_L', 'Shift_R'):
-            return
-        elif event.keysym in ('Return', 'Escape'):
+        typing = event.state == 8 and (event.keysym in 'underscore', 'BackSpace'
+                                       or len(event.keysym) == 1)
+        if not typing:
             menu.place_forget()  # prevent visibility after render
             return
         self.scroll_into_view()
