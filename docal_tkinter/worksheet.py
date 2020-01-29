@@ -248,8 +248,8 @@ class Step(Frame):
         self.input.bind('<Up>', self.edit_neighbour)
         self.input.bind('<Down>', self.edit_neighbour)
         self.input.bind('<FocusIn>', self.on_focus)
-        self.input.bind('<Tab>', self.autocomplete)
-        self.input.bind('<KeyRelease>', self.autocomplete)
+        self.input.bind('<Tab>', self.master.autocomplete.suggest)
+        self.input.bind('<KeyRelease>', self.master.autocomplete.suggest)
         self.bind('<1>', self.edit)
 
         self.current_str = ''
@@ -257,28 +257,6 @@ class Step(Frame):
 
         self.change_displayed('init')
         self.input.focus()
-
-    def autocomplete(self, event):
-        menu = self.master.autocomplete
-        # varying states due to caps lock, num lock and shift changes
-        no_mod = event.state in (0, 2, 8, 10)  # no special modifier
-        shift = event.state in (1, 3, 9, 11)  # holding shift
-        typing = (no_mod or shift) and (event.keysym in ('underscore', 'BackSpace')
-                                      or len(event.keysym) == 1)
-        if typing:
-            self.scroll_into_view()  # recalculate the y
-            menu.suggest(self.input, self.input_props['y'])
-            return
-        if event.keysym == 'Tab':
-            # prevent from firing twice
-            if str(event.type) != 'KeyPress' or not menu.winfo_ismapped():
-                return
-            direction = 1 if no_mod else -1 if shift else None
-            if direction: menu.select_next(direction)
-            return 'break'
-        elif event.keysym in ('Shift_L', 'Shift_R'):
-            return
-        menu.place_forget()  # prevent visibility after render
 
     def change_displayed(self, kind='input'):
         if kind == 'input':
@@ -571,7 +549,7 @@ class Autocomplete(Listbox):
             matches += fillers[:self.limit - n_matches]
         return matches
 
-    def suggest(self, entry, coord_y):
+    def show_matches(self, entry, coord_y):
         entry_cursor = entry.index('insert')
         current = entry.get()[:entry_cursor]
         match = self.pattern.search(current)
@@ -591,6 +569,28 @@ class Autocomplete(Listbox):
         self.select_next(0)
         self.config(height=self.size())
         self.len = self.size()
+
+    def suggest(self, event):
+        step = event.widget.master
+        # varying states due to caps lock, num lock and shift changes
+        no_mod = event.state in (0, 2, 8, 10)  # no special modifier
+        shift = event.state in (1, 3, 9, 11)  # holding shift
+        typing = (no_mod or shift) and (event.keysym in ('underscore', 'BackSpace')
+                                      or len(event.keysym) == 1)
+        if typing:
+            step.scroll_into_view()  # recalculate the y
+            self.show_matches(event.widget, step.input_props['y'])
+            return
+        if event.keysym == 'Tab':
+            # prevent from firing twice
+            if str(event.type) != 'KeyPress' or not self.winfo_ismapped():
+                return
+            direction = 1 if no_mod else -1 if shift else None
+            if direction: self.select_next(direction)
+            return 'break'
+        elif event.keysym in ('Shift_L', 'Shift_R'):
+            return
+        self.place_forget()  # prevent visibility after render
 
 
 class UnitSyntax:
