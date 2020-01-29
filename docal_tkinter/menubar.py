@@ -48,7 +48,10 @@ class FileMenu(Menu):
     def new(self):
         current = self.worksheet.frame.grid_slaves()
         if self.file_modified():  # maybe sth useful
-            response = messagebox.askyesnocancel('Not saved', 'Do you want to save changes to ' + self.master.master.filename + '?')
+            response = messagebox.askyesnocancel('Not saved',
+                                                 'Do you want to save changes to '
+                                                 + path.basename(self.master.master.filename)
+                                                 + '?')
             if response:
                 self.save_as()
             elif response is None:
