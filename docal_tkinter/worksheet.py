@@ -3,6 +3,7 @@
 import re
 from tkinter.ttk import Frame, Label, Entry, Scrollbar, Style
 from tkinter import font, Canvas, Listbox, StringVar
+from inspect import signature
 
 import sys
 # to render the math
@@ -259,20 +260,25 @@ class Step(Frame):
 
     def autocomplete(self, event):
         menu = self.master.autocomplete
+        # varying states due to caps lock, num lock and shift changes
+        no_mod = event.state in (0, 2, 8, 10)  # no special modifier
+        shift = event.state in (1, 3, 9, 11)  # holding shift
+        typing = (no_mod or shift) and (event.keysym in ('underscore', 'BackSpace')
+                                      or len(event.keysym) == 1)
+        if typing:
+            self.scroll_into_view()  # recalculate the y
+            menu.suggest(self.input, self.input_props['y'])
+            return
         if event.keysym == 'Tab':
-            # prevent from firing many times
+            # prevent from firing twice
             if str(event.type) != 'KeyPress' or not menu.winfo_ismapped():
                 return
-            direction = 1 if event.state == 8 else -1
-            menu.select_next(direction)
+            direction = 1 if no_mod else -1 if shift else None
+            if direction: menu.select_next(direction)
             return 'break'
-        typing = event.state == 8 and (event.keysym in 'underscore', 'BackSpace'
-                                       or len(event.keysym) == 1)
-        if not typing:
-            menu.place_forget()  # prevent visibility after render
+        elif event.keysym in ('Shift_L', 'Shift_R'):
             return
-        self.scroll_into_view()
-        menu.suggest(self.input, self.input_props['y'])
+        menu.place_forget()  # prevent visibility after render
 
     def change_displayed(self, kind='input'):
         if kind == 'input':
@@ -526,7 +532,7 @@ class Autocomplete(Listbox):
         if self.selected is None:
             selected = self.trigger
         else:
-            selected = self.selection_get().split('=')[0]
+            selected = self.selection_get().split('\u200B')[0]
         self.entry.delete(self.index_replace[0], self.index_replace[1])
         self.entry.insert(self.index_replace[0], selected)
         self.index_replace = self.index_replace[0], self.index_replace[0] + len(selected)
@@ -544,16 +550,20 @@ class Autocomplete(Listbox):
                 if isinstance(value, float):
                     value = round(value, 5)
                 if isinstance(value, (int, float)):
-                    item += '=' + str(value)
+                    item += '\u200B=' + str(value)
                     if key + UNIT_PF in space:  # has unit
                         item += to_math(space[key + UNIT_PF],
                                         div='/',
                                         syntax=UnitSyntax(),
                                         ital=False)
                 elif isinstance(value, list):
-                    item += '=[mat]'
+                    item += '\u200B=[mat]'
                 elif callable(value):
-                    fillers.append(item + '=[func]')
+                    try:
+                        sig = str(signature(value)).replace(' ', '').replace(',/', '')
+                    except ValueError:
+                        sig = '(...)'
+                    fillers.append(item + '\u200B' + sig)
                     continue
                 matches.append(item)
         n_matches = len(matches)
