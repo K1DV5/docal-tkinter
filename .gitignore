@@ -4,3 +4,4 @@ build/*
 !build/docal.ico
 !build/installer-script.nsi
 rnd
+*.egg-info
