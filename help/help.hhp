@@ -1,0 +1,17 @@
+; -{"C:\Program Files (x86)\HTML Help Workshop\hhc.exe" %f}
+[OPTIONS]
+Auto TOC=3
+Compatibility=1.1 or later
+Compiled file=help.chm
+Contents file=toc.hhc
+Default topic=html\index.html
+Display compile notes=No
+Display compile progress=Yes
+Language=0x409 English (United States)
+
+
+[FILES]
+html\index.html
+
+[INFOTYPES]
+
