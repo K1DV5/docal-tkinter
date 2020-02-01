@@ -116,6 +116,7 @@ Section "" ; Installer section
     CreateDirectory "$SMPROGRAMS\$StartMenuFolder"
     CreateShortcut "$SMPROGRAMS\$StartMenuFolder\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
     CreateShortCut "$SMPROGRAMS\$StartMenuFolder\docal.lnk" "$INSTDIR\docal.exe"
+    CreateShortCut "$SMPROGRAMS\$StartMenuFolder\docal help.lnk" "$INSTDIR\docal.chm"
   
   !insertmacro MUI_STARTMENU_WRITE_END
 
@@ -141,6 +142,7 @@ Section "Uninstall"
   
   !insertmacro MUI_STARTMENU_GETFOLDER Application $StartMenuFolder
     
+  Delete "$SMPROGRAMS\$StartMenuFolder\docal help.lnk"
   Delete "$SMPROGRAMS\$StartMenuFolder\docal.lnk"
   Delete "$SMPROGRAMS\$StartMenuFolder\Uninstall.lnk"
   RMDir "$SMPROGRAMS\$StartMenuFolder"

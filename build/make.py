@@ -13,6 +13,7 @@ DIR = 'docal_tkinter.dist'
 INSTALLER_TEMPLATE = 'installer-script.nsi'
 ASSETS_DIR = path.join(DIR, 'assets')
 ICON = '../docal.ico'
+HELP = '../help/docal.chm'
 
 # template file for word
 WORD_TEMPL = resource_filename('docal', 'handlers/template.docx')
@@ -40,6 +41,7 @@ def build():
         exit(1)
     move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
     copy(ICON, path.join(DIR, path.basename(ICON)))
+    copy(HELP, path.join(DIR, path.basename(HELP)))
     template_dir = path.join(DIR, 'docal', 'handlers')
     makedirs(template_dir)
     copy(WORD_TEMPL, path.join(template_dir, path.basename(WORD_TEMPL)))
@@ -99,5 +101,5 @@ def build_zip():
 # TASKS:
 # -----------
 build()
-# build_zip()
+build_zip()
 create_installer()

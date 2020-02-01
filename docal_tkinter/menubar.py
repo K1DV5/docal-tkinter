@@ -3,7 +3,7 @@ from tkinter import Menu, filedialog, messagebox, Toplevel, Label
 from json import dump, loads, dumps
 from docal.parsers.excel import parse as parse_xl
 from docal.parsers.dcl import to_py
-from os import path
+from os import path, startfile
 
 class Menubar(Menu):
     def __init__(self, master):
@@ -194,7 +194,7 @@ class HelpMenu(Menu):
         self.add_command(label='About', command=self.about)
 
     def help(self):
-        messagebox.showinfo('Quick help', '\u2022 To write text, start with a space.\n\u2022 To write calculations, just type them.\n\u2022 To write equations, start with $$ or $.\n\u2022 To specify a location, write a #hashtag.\n\u2022 To refer to a variable inside a text, precede it with a hash like #T.')
+        startfile('docal.chm')
 
     def about(self):
         win = Toplevel()

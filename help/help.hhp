@@ -2,7 +2,7 @@
 [OPTIONS]
 Auto TOC=3
 Compatibility=1.1 or later
-Compiled file=help.chm
+Compiled file=docal.chm
 Contents file=toc.hhc
 Default topic=html\index.html
 Display compile notes=No
