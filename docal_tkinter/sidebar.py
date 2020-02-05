@@ -3,8 +3,8 @@ from tkinter.ttk import Frame, Label, Entry, Button, Labelframe, OptionMenu, Lab
 from tkinter import filedialog, messagebox, StringVar
 from os import startfile, path
 
-from docal import document
-from docal.handlers import word, latex
+from docal import processor
+from docal.document import word, latex
 from docal.parsers.dcl import parse
 
 class Sidebar(Frame):
@@ -45,24 +45,19 @@ class Sidebar(Frame):
         outfile = self.outfile.get()
         if infile.strip():
             ext = path.splitext(infile)[1]
-            if ext == '.docx':
-                handler = word.handler
-            elif ext == '.tex':
-                handler = latex.handler
-            else:
-                return False
         elif outfile.strip():
             ext = path.splitext(outfile)[1]
-            if ext == '.docx':
-                handler = word.handler
-            elif ext == '.tex':
-                handler = latex.handler
-            else:
-                return False
         else:
             return False
-        doc = document(infile, outfile, handler=handler)
-        return doc
+        if ext == '.docx':
+            handler = word.document
+            syntax = word.syntax()
+        elif ext == '.tex':
+            handler = latex.document
+            syntax = latex.syntax()
+        else:
+            return False
+        return handler(infile, outfile), syntax
 
     def clear_calcs(self):
         ext = path.splitext(self.infile.get())[1]
@@ -71,29 +66,31 @@ class Sidebar(Frame):
                 'Not supported',
                 'The file type does not support clearing tags in place')
             return
-        doc = self.prepare()
+        doc, _ = self.prepare()
         doc.write()
         messagebox.showinfo('Success', 'Cleared.')
 
     def send_calcs(self):
         try:
-            doc = self.prepare()
+            doc, syntax = self.prepare()
             if not doc:
                 self.bell()
                 messagebox.showerror('Error', 'Filetype not supported.')
                 return
             self.master.menu.file_menu.save()
-            doc.send(parse(self.master.filename))
-            doc.write()
+            proc = processor(syntax, doc.tags)
+            proc.send(parse(self.master.filename))
+            doc.write(proc.contents)
         except Exception as e:
             messagebox.showerror('Error', 'Internal error:\n' + str(e.args))
+            raise
         else:
-            if doc.document_file.infile:
-                self.infile.set(doc.document_file.infile)
-            self.outfile.set(doc.document_file.outfile)
+            if doc.infile:
+                self.infile.set(doc.infile)
+            self.outfile.set(doc.outfile)
             message = ''
-            if doc.log:
-                message = '\n'.join(doc.log) + '\n\n'
+            if proc.log:
+                message = '\n'.join(proc.log) + '\n\n'
             yes = messagebox.askyesno(
                 'Success', message + 
                 'Sent successfully. Do you want to open the output document?')

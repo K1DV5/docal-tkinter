@@ -1,7 +1,7 @@
 # -{cd .. | python -m docal_tkinter}
 from tkinter.ttk import Frame, LabelFrame, Checkbutton, Entry, Label, Button, Style
 from tkinter import IntVar
-from docal.handlers.word import PRIMES, GREEK_LETTERS
+from docal.document.word import PRIMES, GREEK_LETTERS
 
 MATH_ACCENTS = {
     'hat': '\u0302',

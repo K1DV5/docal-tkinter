@@ -8,10 +8,10 @@ from inspect import signature
 import sys
 # to render the math
 from tkinter_math import syntax, select_font
-from docal import document
+from docal import processor
 from docal.parsers.dcl import to_py
 from docal.parsing import UNIT_PF, to_math
-from docal.handlers.latex import syntax as syntax_latex
+from docal.document.latex import syntax as syntax_latex
 
 def augment_output(output, input_str):
     if output:
@@ -26,15 +26,6 @@ def augment_output(output, input_str):
     elif input_str.strip():  # arbitrary code
         return [(None, ('text', '[code]'))]
     return [(None, ('text', ' '))]
-
-# just to get the process method from document
-class handler:
-    syntax = syntax()
-    def __init__(self, infile, pattern):
-        self.tags = []
-        pass
-    def write(self, outfile, values):
-        pass
 
 class Worksheet(Frame):
     def __init__(self, master):
@@ -55,8 +46,8 @@ class Worksheet(Frame):
         # dummy with the font for performance when measuring
         Label(self, text='', font=math_font)
 
-        self.doc_obj = document(None, 'untitled.tex', handler, working_dict={})
-        self.process = self.doc_obj.process
+        self.processor = processor(syntax())
+        self.process = self.processor.process
 
         self.autocomplete = Autocomplete(self)
         self.current_input = None
@@ -114,7 +105,7 @@ class Worksheet(Frame):
         return step
 
     def update_above(self, step):
-        self.doc_obj.working_dict = {}
+        self.processor.working_dict = {}
         self.process('from math import *')  # scientific math funcs
         this_row = step.grid_info()['row']
         steps = self.frame.grid_slaves()
@@ -520,7 +511,7 @@ class Autocomplete(Listbox):
         if not trigger.isidentifier(): return []
         len_trigger = len(trigger)
         matches, fillers = [], []  # fillers shown if len(matches) < limit
-        space = self.master.doc_obj.working_dict
+        space = self.master.processor.working_dict
         for key in space:
             if key.startswith(trigger) and not key.endswith(UNIT_PF):
                 item = key
