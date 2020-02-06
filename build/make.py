@@ -16,7 +16,7 @@ ICON = '../docal.ico'
 HELP = '../help/docal.chm'
 
 # template file for word
-WORD_TEMPL = resource_filename('docal', 'handlers/template.docx')
+WORD_TEMPL = resource_filename('docal', 'document/word.docx')
 
 def build():
     args = ['python', '-m', 'nuitka',
