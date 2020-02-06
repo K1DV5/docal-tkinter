@@ -144,7 +144,7 @@ class FileMenu(Menu):
                 self.save()
             elif response is None:
                 return
-        self.master.master.quit()
+        self.master.master.destroy()
 
 
 class EditMenu(Menu):
