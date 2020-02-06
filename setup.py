@@ -1,6 +1,6 @@
-# -{pip install -e .}
-# -{del dist\* | python %f sdist bdist_wheel}
 # -{twine upload dist/*}
+# -{del dist\* | python %f sdist bdist_wheel}
+# -{pip install -e .}
 """
 :copyright: (c) 2019 by K1DV5
 :license: MIT, see LICENSE for more details.
@@ -34,7 +34,7 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
     include_package_data=True,
-    keywords='docal',
+    keywords='docal, tkinter, math, latex, word',
     packages=['docal_tkinter'],
     url='https://github.com/K1DV5/docal-tkinter',
     version=VERSION,
