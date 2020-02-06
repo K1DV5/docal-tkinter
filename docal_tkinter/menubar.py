@@ -4,6 +4,7 @@ from json import dump, loads, dumps
 from docal.parsers.excel import parse as parse_xl
 from docal.parsers.dcl import to_py
 from os import path, startfile
+from webbrowser import open_new_tab
 
 class Menubar(Menu):
     def __init__(self, master):
@@ -198,17 +199,23 @@ class HelpMenu(Menu):
 
     def about(self):
         win = Toplevel()
-        win.title('About')
-        Label(win, text='docal', font=(None, 24)).grid(sticky='w')
+        win.title('About docal')
+        Label(win, text='docal', font=(None, 19)).grid(sticky='w')
         Label(win, text='Version 2.2.1').grid(sticky='w')
         Label(win, text='New releases can be found at').grid(sticky='w')
-        Label(win, text='http://github.com/K1DV5/docal-tkinter/releases', fg='blue').grid(row=2, column=1, sticky='w')
         Label(win, text='\nProject URLs').grid(sticky='w')
-        Label(win, text='http://github.com/K1DV5/docal', fg='blue').grid(sticky='w')
         Label(win, text=' (Core project)').grid(row=4, column=1, sticky='w')
-        Label(win, text='http://github.com/K1DV5/docal-tkinter', fg='blue').grid(sticky='w')
         Label(win, text=' (UI project)').grid(row=5, column=1, sticky='w')
-        Label(win, text='http://github.com/K1DV5/tkinter-math', fg='blue').grid(sticky='w')
         Label(win, text=' (Math renderer project, for the UI)').grid(row=6, column=1, sticky='w')
+        links = [
+            ('https://github.com/K1DV5/docal-tkinter/releases', 2, 1),
+            ('https://github.com/K1DV5/docal', 4, 0),
+            ('https://github.com/K1DV5/docal-tkinter', 5, 0),
+            ('https://github.com/K1DV5/tkinter-math', 6, 0),
+        ]
+        for url, row, col in links:
+            link = Label(win, text=url, foreground='blue', cursor='hand2')
+            link.grid(row=row, column=col, sticky='e')
+            link.bind('<1>', lambda e: open_new_tab(e.widget['text']))
         win.protocol('WM_DELETE_WINDOW', lambda: win.destroy())
         win.mainloop()
