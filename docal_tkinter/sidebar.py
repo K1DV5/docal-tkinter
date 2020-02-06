@@ -82,8 +82,11 @@ class Sidebar(Frame):
             proc.send(parse(self.master.filename))
             doc.write(proc.contents)
         except Exception as e:
-            messagebox.showerror('Error', 'Internal error:\n' + str(e.args))
-            raise
+            if isinstance(doc, word.document) and isinstance(e, PermissionError):
+                message = 'Could not modify file. If you have opened the output document in Word, please close it and try again.'
+            else:
+                message = 'Internal error:\n' + str(e.args)
+            messagebox.showerror('Error', message)
         else:
             if doc.infile:
                 self.infile.set(doc.infile)
