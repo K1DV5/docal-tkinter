@@ -11,7 +11,6 @@ VERSION = pkg_resources.get_distribution('docal').version
 NAME = 'docal'
 DIR = 'docal_tkinter.dist'
 INSTALLER_TEMPLATE = 'installer-script.nsi'
-ASSETS_DIR = path.join(DIR, 'assets')
 ICON = '../docal.ico'
 HELP = '../help/docal.chm'
 
@@ -42,7 +41,7 @@ def build():
     move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
     copy(ICON, path.join(DIR, path.basename(ICON)))
     copy(HELP, path.join(DIR, path.basename(HELP)))
-    template_dir = path.join(DIR, 'docal', 'handlers')
+    template_dir = path.join(DIR, 'docal', 'document')
     makedirs(template_dir)
     copy(WORD_TEMPL, path.join(template_dir, path.basename(WORD_TEMPL)))
     # unnecessary data, this app works offline
