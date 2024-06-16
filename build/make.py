@@ -1,10 +1,9 @@
 from subprocess import run
 from glob import glob
-from os import walk, path, sep as pathsep, makedirs, remove
-from shutil import copy, move, rmtree, make_archive
+from os import walk, path, sep as pathsep, makedirs
+from shutil import copy, move, rmtree
 import pkg_resources
 import zipfile as zf
-import re
 from pkg_resources import resource_filename
 
 VERSION = pkg_resources.get_distribution('docal').version
@@ -21,21 +20,12 @@ def build():
     args = ['python', '-m', 'nuitka',
             '--standalone',
             '--plugin-enable=tk-inter',
-            '--windows-icon=' + path.abspath(ICON),
-            '--windows-disable-console',
-            # '--experimental=use_pefile',
-            # '--experimental=use_pefile_recurse',
-            '--windows-dependency-tool=pefile',
-            '--recurse-all',
+            '--windows-icon-from-ico=' + path.abspath(ICON),
+            '--windows-console-mode=disable',
+            '--experimental=use_pefile',
+            '--experimental=use_pefile_recurse',
             '../docal_tkinter']
-    # args = [
-    #     'pyinstaller',
-    #     '../docal_tkinter',
-    #     '-n', NAME,
-    #     '--windowed',
-    #     '--icon', ICON
-    # ]
-    if run(args).returncode != 0:
+    if run(args, shell=True).returncode != 0:
         print('error')
         exit(1)
     move(path.join(DIR, 'docal_tkinter.exe'), path.join(DIR, NAME + '.exe'))
@@ -45,16 +35,16 @@ def build():
     makedirs(template_dir)
     copy(WORD_TEMPL, path.join(template_dir, path.basename(WORD_TEMPL)))
     # unnecessary data, this app works offline
-    rmtree(path.join(DIR, 'tcl', 'encoding'))
-    rmtree(path.join(DIR, 'tcl', 'http1.0'))
-    rmtree(path.join(DIR, 'tcl', 'tzdata'))
-    rmtree(path.join(DIR, 'tcl', 'opt0.4'))
-    rmtree(path.join(DIR, 'tcl', 'msgs'))
-    rmtree(path.join(DIR, 'tk', 'msgs'))
-    rmtree(path.join(DIR, 'tk', 'images'))
-    remove(path.join(DIR, '_ssl.pyd'))
-    remove(path.join(DIR, 'libcrypto-1_1.dll'))
-    remove(path.join(DIR, 'libssl-1_1.dll'))
+    rmtree(path.join(DIR, 'tcl', 'encoding'), ignore_errors=True)
+    rmtree(path.join(DIR, 'tcl', 'http1.0'), ignore_errors=True)
+    rmtree(path.join(DIR, 'tcl', 'tzdata'), ignore_errors=True)
+    rmtree(path.join(DIR, 'tcl', 'opt0.4'), ignore_errors=True)
+    rmtree(path.join(DIR, 'tcl', 'msgs'), ignore_errors=True)
+    rmtree(path.join(DIR, 'tk', 'msgs'), ignore_errors=True)
+    rmtree(path.join(DIR, 'tk', 'images'), ignore_errors=True)
+    rmtree(path.join(DIR, '_ssl.pyd'), ignore_errors=True)
+    rmtree(path.join(DIR, 'libcrypto-1_1.dll'), ignore_errors=True)
+    rmtree(path.join(DIR, 'libssl-1_1.dll'), ignore_errors=True)
     print('Compiled')
 
 def create_installer():
@@ -101,4 +91,4 @@ def build_zip():
 # -----------
 build()
 build_zip()
-create_installer()
+# create_installer()

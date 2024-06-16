@@ -1,9 +1,9 @@
 **/__pycache__
 build
-dist
 !build/make.py
 !build/docal.ico
 !build/installer-script.nsi
+dist
 rnd
 *.egg-info
 help/html
