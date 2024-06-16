@@ -1,5 +1,5 @@
-# -{cd .. | python -m docal_tkinter}
-from tkinter import Tk, Menu
+# $ cd .. && python -m docal_tkinter
+from tkinter import Tk
 from .sidebar import Sidebar
 from .worksheet import Worksheet
 from .menubar import Menubar

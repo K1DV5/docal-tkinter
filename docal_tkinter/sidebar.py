@@ -1,11 +1,20 @@
-# -{cd .. | python -m docal_tkinter}
-from tkinter.ttk import Frame, Label, Entry, Button, Labelframe, OptionMenu, Label
+from tkinter.ttk import Frame, Entry, Button, Labelframe
 from tkinter import filedialog, messagebox, StringVar
-from os import startfile, path
+import os
+import sys
+import subprocess
+from os import path
 
 from docal import processor
 from docal.document import word, latex
 from docal.parsers.dcl import parse
+
+def start_file(filename):
+    if sys.platform == "win32":
+        os.startfile(filename)
+    else:
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.call([opener, filename])
 
 class Sidebar(Frame):
     def __init__(self, master):
@@ -113,7 +122,7 @@ class Sidebar(Frame):
                 return
             filename = self.outfile.get()
         try:
-            startfile(filename)
+            start_file(filename)
         except OSError as err:
             messagebox.showerror('Error', err.args[1])
 

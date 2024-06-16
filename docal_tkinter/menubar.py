@@ -1,10 +1,11 @@
-# -{cd .. | python -m docal_tkinter}
 from tkinter import Menu, filedialog, messagebox, Toplevel, Label
 from json import dump, loads, dumps
 from docal.parsers.excel import parse as parse_xl
 from docal.parsers.dcl import to_py
-from os import path, startfile
+from os import path
 from webbrowser import open_new_tab
+
+from docal_tkinter.sidebar import start_file
 
 class Menubar(Menu):
     def __init__(self, master):
@@ -72,7 +73,7 @@ class FileMenu(Menu):
             if not self.new(): return
         ext = path.splitext(filename)[1]
         self.worksheet.frame.grid_slaves()[0].destroy()  # start from scratch
-        with open(filename) as file:
+        with open(filename, encoding='utf-8') as file:
             in_file = file.read()
         if ext == '.dcl':
             data = loads(in_file)
@@ -195,7 +196,7 @@ class HelpMenu(Menu):
         self.add_command(label='About', command=self.about)
 
     def help(self):
-        startfile('docal.chm')
+        start_file('docal.chm')
 
     def about(self):
         win = Toplevel()
